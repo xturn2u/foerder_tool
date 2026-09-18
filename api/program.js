@@ -39,46 +39,73 @@ const LAND_NAMES = [
 ];
 
 function classifyFundingLevel({title="", foerdergeber="", foerdergebiet="", text=""}) {
-  const hay = norm([title, foerdergeber, foerdergebiet, text.slice(0, 2500)].join(" "));
+  const giver = norm(foerdergeber);
+  const area = norm(foerdergebiet);
+  const all = norm([title, foerdergeber, foerdergebiet, text.slice(0, 2500)].join(" "));
 
-  if (/europaische union|europaische kommission|eu-kommission|eu-fonds|efre|esf\+|interreg|horizont europa|eafrd/.test(hay)) {
-    return {type:"eu", label:"EU-Förderung", region:"Europäische Union", confidence:"hoch", evidence:foerdergeber || foerdergebiet || title};
-  }
+  const findLand = source => LAND_NAMES.find(land => source.includes(norm(land))) || "";
 
+  const municipalSource = [foerdergeber, title].join(" ");
   const municipalPatterns = [
     /landeshauptstadt\s+([a-zäöüß\- ]{2,40})/i,
     /stadt\s+([a-zäöüß\- ]{2,40})/i,
     /gemeinde\s+([a-zäöüß\- ]{2,40})/i,
     /landkreis\s+([a-zäöüß\- ]{2,40})/i,
-    /kreis\s+([a-zäöüß\- ]{2,40})/i,
     /bezirksamt\s+([a-zäöüß\- ]{2,40})/i
   ];
-  const municipalSource = [foerdergeber, title].join(" ");
-  for (const re of municipalPatterns) {
-    const m = municipalSource.match(re);
-    if (m) {
-      const place = m[1].replace(/\s+(fördert|förderung|programm|ministerium).*$/i,"").trim();
-      return {type:"municipal", label:"Kommunale Förderung" + (place ? " · " + place : ""), region:place || "", confidence:"hoch", evidence:foerdergeber || title};
+  if (/(stadt|gemeinde|landkreis|landeshauptstadt|bezirksamt)/.test(giver)) {
+    for (const re of municipalPatterns) {
+      const m = municipalSource.match(re);
+      if (m) {
+        const place = m[1].replace(/\s+(fördert|förderung|programm|ministerium|referat).*$/i,"").trim();
+        return {type:"municipal", label:"Kommunale Förderung" + (place ? " · " + place : ""), region:place || "", confidence:"hoch", evidence:foerdergeber || title};
+      }
     }
+    return {type:"municipal", label:"Kommunale Förderung", region:"", confidence:"hoch", evidence:foerdergeber || title};
   }
 
-  for (const land of LAND_NAMES) {
-    const n = norm(land);
-    const giverHasLand = norm(foerdergeber).includes(n);
-    const areaHasLand = norm(foerdergebiet).includes(n);
-    const titleHasLand = norm(title).includes(n);
-    if (giverHasLand || areaHasLand || titleHasLand) {
-      return {type:"state", label:"Landesförderung · " + land, region:land, confidence:giverHasLand ? "hoch" : "mittel", evidence:foerdergeber || foerdergebiet || title};
-    }
+  const giverIsFederal = /bundesministerium|bundesamt|bundesanstalt|bundesrepublik deutschland|\bbafa\b|\bkfw\b/.test(giver);
+  if (giverIsFederal) {
+    return {type:"federal", label:"Bundesförderung", region:"Deutschland", confidence:"hoch", evidence:foerdergeber};
   }
 
-  if (/bundesministerium|bundesamt|bundesanstalt|bundesrepublik deutschland|bundesweit|kfw|bafa/.test(hay)) {
-    return {type:"federal", label:"Bundesförderung", region:"Deutschland", confidence:"hoch", evidence:foerdergeber || foerdergebiet || title};
+  const giverLand = findLand(giver);
+  const euMentioned = /europaische union|europaische kommission|eu-kommission|eu-fonds|\befre\b|\besf\+?\b|\binterreg\b|horizont europa|\beafrd\b/.test(all);
+  if (giverLand) {
+    return {
+      type:euMentioned ? "eu_state" : "state",
+      label:(euMentioned ? "EU / Landesförderung · " : "Landesförderung · ") + giverLand,
+      region:giverLand,
+      confidence:"hoch",
+      evidence:foerdergeber
+    };
+  }
+
+  const giverIsEU = /europaische union|europaische kommission|eu-kommission/.test(giver);
+  if (giverIsEU) {
+    return {type:"eu", label:"EU-Förderung", region:"Europäische Union", confidence:"hoch", evidence:foerdergeber};
+  }
+
+  const titleLand = findLand(norm(title));
+  if (titleLand) {
+    return {type:euMentioned ? "eu_state" : "state", label:(euMentioned ? "EU / Landesförderung · " : "Landesförderung · ") + titleLand, region:titleLand, confidence:"mittel", evidence:title};
+  }
+
+  if (/bundesweit|deutschlandweit/.test(area) || /bundesprogramm|bundesforderung|bundesförderung/.test(norm(title))) {
+    return {type:"federal", label:"Bundesförderung", region:"Deutschland", confidence:"mittel", evidence:foerdergebiet || title};
+  }
+
+  const areaLand = findLand(area);
+  if (areaLand) {
+    return {type:euMentioned ? "eu_state" : "state", label:(euMentioned ? "EU / Landesförderung · " : "Landesförderung · ") + areaLand, region:areaLand, confidence:"mittel", evidence:foerdergebiet};
+  }
+
+  if (euMentioned) {
+    return {type:"eu", label:"EU-Förderung", region:"Europäische Union", confidence:"mittel", evidence:foerdergeber || foerdergebiet || title};
   }
 
   return {type:"unknown", label:"Förder-Ebene prüfen", region:"", confidence:"niedrig", evidence:foerdergeber || foerdergebiet || title};
 }
-
 function moneyToNumber(raw = "") {
   const v = raw.replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
   const n = Number(v);
