@@ -33,7 +33,7 @@
     button{border:0;background:#172033;color:white;padding:13px 18px;border-radius:11px;font-weight:850;cursor:pointer;font:inherit}
     button.secondary{background:#eef2f7;color:#263349}button:disabled{opacity:.55;cursor:wait}
     .small{font-size:12px;color:#778296}.info{margin-top:18px;padding:13px 15px;background:#f8fafc;border:1px solid #e6eaf2;border-radius:12px;color:#677185;font-size:13px;line-height:1.5}
-    .summary{display:none;margin-top:18px;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#f8fafc;border:1px solid var(--line);border-radius:13px;padding:14px}
+    .summary{display:none;margin-top:18px;grid-template-columns:repeat(4,1fr);gap:10px}.resultsToolbar{display:none;margin:20px 0 10px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:13px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.resultsToolbar.show{display:flex}.resultsToolbar .left{font-size:13px;color:#667085;font-weight:750}.resultsToolbar .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.resultsToolbar select{width:auto;min-width:210px;margin:0;padding:9px 11px}.stat{background:#f8fafc;border:1px solid var(--line);border-radius:13px;padding:14px}
     .stat .n{font-size:22px;font-weight:900}.stat .l{font-size:12px;color:#6c778a;margin-top:3px}
     #status{margin:22px 0 10px;color:#687386}.results{display:grid;gap:14px}
     .card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:19px;box-shadow:0 4px 16px rgba(31,46,80,.035)}
@@ -89,6 +89,38 @@
                 <option>Verein</option><option>Hochschule</option><option>Forschungseinrichtung</option><option>Öffentliche Einrichtung</option>
               </select>
             </label>
+          </div>
+
+          <div class="thirds">
+            <div>
+              <label>Ort / Kommune <span class="small">(optional)</span>
+                <input id="locality" placeholder="z. B. München, Neu-Ulm, Augsburg">
+              </label>
+            </div>
+            <div>
+              <label>Förderart
+                <select id="fundingType">
+                  <option value="">Alle Förderarten</option>
+                  <option>Zuschuss</option>
+                  <option>Darlehen</option>
+                  <option>Bürgschaft</option>
+                  <option>Beteiligung</option>
+                  <option>Garantie</option>
+                  <option>Sonstige</option>
+                </select>
+              </label>
+            </div>
+            <div>
+              <label>Förder-Ebene
+                <select id="fundingLevel">
+                  <option value="">Alle Ebenen</option>
+                  <option>Bund</option>
+                  <option>Land</option>
+                  <option>EU</option>
+                  <option>Kommunal</option>
+                </select>
+              </label>
+            </div>
           </div>
 
           <div class="thirds">
@@ -154,6 +186,18 @@
 
     <div id="status"></div>
     <div id="warnings" class="warnings"></div>
+    <div id="resultsToolbar" class="resultsToolbar">
+      <div class="left" id="resultsToolbarLabel">Ergebnisse</div>
+      <div class="right">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#667085">Sortierung
+          <select id="resultSort" onchange="applyResultSort()">
+            <option value="match">Beste Übereinstimmung</option>
+            <option value="amount">Höchster möglicher Förderbetrag</option>
+            <option value="level">Förder-Ebene</option>
+          </select>
+        </label>
+      </div>
+    </div>
     <div id="results" class="results"></div>
 
     <footer>FörderRadar Deutschland · Entwicklungsstand · keine Rechts-, Steuer- oder Förderberatung · maßgeblich sind ausschließlich die offiziellen Programmbedingungen.</footer>
@@ -251,6 +295,9 @@ function profile(){
     state:document.getElementById('state').value,
     target:document.getElementById('target').value,
     size:sizeVisible?document.getElementById('size').value:'',
+    locality:document.getElementById('locality').value.trim(),
+    fundingType:document.getElementById('fundingType').value,
+    fundingLevel:document.getElementById('fundingLevel').value,
     investment:document.getElementById('investment').value,
     start:document.getElementById('start').value,
     q:document.getElementById('q').value.trim(),
@@ -261,7 +308,7 @@ function saveProfile(){localStorage.setItem(PROFILE_KEY,JSON.stringify(profile()
 function loadProfile(){
   try{
     const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null'); if(!p)return;
-    ['state','target','size','investment','start','q'].forEach(id=>{if(p[id]!==undefined&&document.getElementById(id))document.getElementById(id).value=p[id]});
+    ['state','target','size','locality','fundingType','fundingLevel','investment','start','q'].forEach(id=>{if(p[id]!==undefined&&document.getElementById(id))document.getElementById(id).value=p[id]});
     document.querySelectorAll('#topics input').forEach(x=>x.checked=(p.topics||[]).includes(x.value));
     applyTargetLogic();
   }catch{}
@@ -272,6 +319,9 @@ function resetProfile(){
   document.getElementById('target').value='Unternehmen';
   applyTargetLogic();
   document.getElementById('size').value='';
+  document.getElementById('locality').value='';
+  document.getElementById('fundingType').value='';
+  document.getElementById('fundingLevel').value='';
   document.getElementById('investment').value='';
   document.getElementById('start').value='';
   document.getElementById('q').value='';
@@ -280,6 +330,7 @@ function resetProfile(){
   document.getElementById('warnings').innerHTML='';
   document.getElementById('status').textContent='';
   document.getElementById('summary').style.display='none';
+  document.getElementById('resultsToolbar').classList.remove('show');
 }
 function fitClass(v){return v>=80?'':v>=65?'medium':'low'}
 function levelClass(level){return level?.type||'unknown'}
@@ -301,13 +352,54 @@ function estimateHtml(e){
   const notes=(e.notes||[]).length?'<div class="estimateCalc">'+e.notes.map(esc).join(' ')+'</div>':'';
   return '<div class="estimateBox"><div class="estimateLabel">Möglicher Förderbetrag bis zu</div><div class="estimateAmount">'+money(e.amount)+'</div><div class="estimateCalc">'+calc+confidence+'</div>'+notes+'</div>';
 }
+function sortedPrograms(programs,mode){
+  const copy=[...programs];
+  if(mode==='amount'){
+    return copy.sort((a,b)=>(b._detail?.funding_estimate?.amount||-1)-(a._detail?.funding_estimate?.amount||-1)||b.fit-a.fit);
+  }
+  if(mode==='level'){
+    const rank={federal:1,state:2,eu_state:3,municipal:4,eu:5,unknown:6};
+    return copy.sort((a,b)=>(rank[(a._detail?.funding_level||a.funding_level)?.type]||9)-(rank[(b._detail?.funding_level||b.funding_level)?.type]||9)||b.fit-a.fit);
+  }
+  return copy.sort((a,b)=>b.fit-a.fit);
+}
+function renderPrograms(){
+  const programs=sortedPrograms(window.lastPrograms||[],document.getElementById('resultSort').value);
+  const p=window.lastProfile||profile();
+  const results=document.getElementById('results');
+  results.innerHTML=programs.map((program,i)=>{
+    const level=program._detail?.funding_level||program.funding_level;
+    const est=program._detail?.funding_estimate;
+    const estimateBlock=est?estimateHtml(est):(Number(p.investment)>0?'<div class="estimatePending">Möglicher Förderbetrag wird geprüft …</div>':'');
+    return `
+      <article class="card" data-url="${esc(program.url)}">
+        <div class="row">
+          <div>
+            <div class="title">${esc(program.title)}</div>
+            <div class="levelBadges"><span id="level-${i}" class="levelBadge ${levelClass(level)}">${esc(levelLabel(level))}</span>${program._detail?.foerderart?'<span class="levelBadge">'+esc(program._detail.foerderart)+'</span>':''}</div>
+          </div>
+          <div class="fit ${fitClass(program.fit)}">${esc(program.fit)} % Match</div>
+        </div>
+        <div class="meta">
+          ${program.who?'<div><strong>Förderberechtigt:</strong> '+esc(program.who)+'</div>':''}
+          ${program.what?'<div><strong>Förderbereich:</strong> '+esc(program.what)+'</div>':''}
+          <div><strong>Status:</strong> ${esc(program.status)}</div>
+        </div>
+        ${program.reasons?.length?'<div class="reasons">'+program.reasons.map(r=>'<span class="reason">'+esc(r)+'</span>').join('')+'</div>':''}
+        <div id="estimate-${i}">${estimateBlock}</div>
+        <div class="links"><button class="inspect" onclick="inspectProgramByUrl('${encodeURIComponent(program.url)}',this)">Programm prüfen</button><a class="btn" href="${esc(program.url)}" target="_blank" rel="noopener">Offizielle Quelle ↗</a></div>
+        <div class="detailPanel"></div>
+      </article>`;
+  }).join('');
+}
+function applyResultSort(){renderPrograms()}
 async function searchFunding(){
   const btn=document.getElementById('searchBtn'),status=document.getElementById('status'),results=document.getElementById('results'),warnings=document.getElementById('warnings');
   const p=profile(); saveProfile();
   btn.disabled=true;results.innerHTML='';warnings.innerHTML='';status.textContent='Mehrere Förderpfade werden parallel geprüft …';
   document.getElementById('summary').style.display='none';
   try{
-    const params=new URLSearchParams({q:p.q,state:p.state,target:p.target,size:p.size,investment:p.investment,start:p.start,topics:p.topics.join(',')});
+    const params=new URLSearchParams({q:p.q,state:p.state,target:p.target,size:p.size,locality:p.locality,fundingType:p.fundingType,fundingLevel:p.fundingLevel,investment:p.investment,start:p.start,topics:p.topics.join(',')});
     const r=await fetch('/api/search?'+params);
     const data=await r.json();
     if(!r.ok||!data.ok)throw new Error(data.error||'Suche fehlgeschlagen');
@@ -327,80 +419,62 @@ async function searchFunding(){
     warnings.innerHTML=(data.warnings||[]).map(w=>'<div class="warn">'+esc(w)+'</div>').join('');
 
     if(!data.programs.length){
+      document.getElementById('resultsToolbar').classList.remove('show');
       results.innerHTML='<div class="card warning">Für dieses Profil wurden im MVP keine Treffer erkannt. Wähle weniger Themen oder formuliere das Vorhaben allgemeiner.</div>';
       return;
     }
 
-    window.lastPrograms=data.programs;results.innerHTML=data.programs.map((p,i)=>`
-      <article class="card">
-        <div class="row">
-          <div>
-            <div class="title">${esc(p.title)}</div>
-            <div class="levelBadges"><span id="level-${i}" class="levelBadge ${levelClass(p.funding_level)}">${esc(levelLabel(p.funding_level))}</span></div>
-          </div>
-          <div class="fit ${fitClass(p.fit)}">${esc(p.fit)} % Match</div>
-        </div>
-        <div class="meta">
-          ${p.who?'<div><strong>Förderberechtigt:</strong> '+esc(p.who)+'</div>':''}
-          ${p.what?'<div><strong>Förderbereich:</strong> '+esc(p.what)+'</div>':''}
-          <div><strong>Status:</strong> ${esc(p.status)}</div>
-        </div>
-        ${p.reasons?.length?'<div class="reasons">'+p.reasons.map(r=>'<span class="reason">'+esc(r)+'</span>').join('')+'</div>':''}
-        <div id="estimate-${i}">${Number(document.getElementById('investment').value)>0?'<div class="estimatePending">Möglicher Förderbetrag wird geprüft …</div>':''}</div>
-        <div class="links"><button class="inspect" onclick="inspectProgram(${i},this)">Programm prüfen</button><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Offizielle Quelle ↗</a></div><div id="detail-${i}" class="detailPanel"></div>
-      </article>
-    `).join('');
+    window.lastPrograms=data.programs;
+    window.lastProfile=p;
+    document.getElementById('resultsToolbarLabel').textContent=data.programs.length+' Ergebnisse';
+    document.getElementById('resultsToolbar').classList.add('show');
+    renderPrograms();
     loadTopDetails(data.programs,p);
   }catch(e){
+    document.getElementById('resultsToolbar').classList.remove('show');
     status.textContent='';
     results.innerHTML='<div class="card error"><strong>Live-Suche fehlgeschlagen.</strong><br>'+esc(e.message)+'<br><small>FörderRadar zeigt bewusst keine erfundenen Ersatztreffer an.</small></div>';
   }finally{btn.disabled=false}
 }
 async function loadTopDetails(programs,p){
-  const limit=Math.min(programs.length,8);
+  const limit=Math.min(programs.length,12);
   let cursor=0;
   async function worker(){
     while(cursor<limit){
-      const i=cursor++;
-      const program=programs[i];
-      const box=document.getElementById('estimate-'+i);
-      if(!box)continue;
+      const index=cursor++;
+      const program=programs[index];
       try{
-        const params=new URLSearchParams({
-          url:program.url,
-          investment:p.investment||'',
-          size:p.size||'',
-          target:p.target||''
-        });
+        const params=new URLSearchParams({url:program.url,investment:p.investment||'',size:p.size||'',target:p.target||''});
         const r=await fetch('/api/program?'+params);
         const d=await r.json();
-        if(!r.ok||!d.ok)throw new Error(d.error||'Förderbetrag nicht berechenbar');
-        setVerifiedLevel(i,d.funding_level);
-        box.innerHTML=Number(p.investment)>0?estimateHtml(d.funding_estimate):'';
+        if(!r.ok||!d.ok)throw new Error(d.error||'Programmdetails nicht verfügbar');
         program._detail=d;
       }catch(e){
-        box.innerHTML=Number(p.investment)>0?'<div class="estimateUnavailable">Förderbetrag konnte noch nicht ermittelt werden.</div>':'';
+        program._detailError=e.message||'Fehler';
       }
     }
   }
   await Promise.all([worker(),worker(),worker()]);
+  renderPrograms();
 }
-async function inspectProgram(i,btn){
-  const p=(window.lastPrograms||[])[i]; if(!p)return;
-  const box=document.getElementById('detail-'+i);
+async function inspectProgramByUrl(encodedUrl,btn){
+  const url=decodeURIComponent(encodedUrl);
+  const program=(window.lastPrograms||[]).find(x=>x.url===url);
+  if(!program)return;
+  const card=btn.closest('.card');
+  const box=card.querySelector('.detailPanel');
   if(box.classList.contains('open')){box.classList.remove('open');btn.textContent='Programm prüfen';return}
   btn.disabled=true;btn.textContent='Prüfe …';box.classList.add('open');box.innerHTML='<span class="small">Offizielle Programmdaten werden geladen …</span>';
   try{
-    let d=p._detail;
+    let d=program._detail;
     if(!d){
       const pr=profile();
-      const r=await fetch('/api/program?'+new URLSearchParams({url:p.url,investment:pr.investment||'',size:pr.size||'',target:pr.target||''}));
+      const r=await fetch('/api/program?'+new URLSearchParams({url:program.url,investment:pr.investment||'',size:pr.size||'',target:pr.target||''}));
       d=await r.json(); if(!r.ok||!d.ok)throw new Error(d.error||'Detailprüfung fehlgeschlagen');
-      p._detail=d;
+      program._detail=d;
     }
-    setVerifiedLevel(i,d.funding_level);
     const parts=[
-      ['Förderart',d.foerderart],['Fördergebiet',d.foerdergebiet],
+      ['Förder-Ebene',levelLabel(d.funding_level)],['Förderart',d.foerderart],['Fördergebiet',d.foerdergebiet],
       ['Förderberechtigte',d.foerderberechtigte],['Fördergeber',d.foerdergeber],
       ['Förderbereich',d.foerderbereich],['Ansprechpunkt',d.ansprechpunkt]
     ].filter(x=>x[1]);
