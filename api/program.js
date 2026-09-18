@@ -373,6 +373,44 @@ function estimateFunding(text, investment, size, target, locality, state) {
   };
 }
 
+
+function extractApplicationLinks(html, baseUrl) {
+  const links = [];
+  const seen = new Set();
+  const re = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+  for (const m of html.matchAll(re)) {
+    const href = decodeHtml(m[1] || "").trim();
+    const label = clean(m[2] || "");
+    if (!href || /^(?:#|javascript:|mailto:|tel:)/i.test(href)) continue;
+
+    let url;
+    try { url = new URL(href, baseUrl).toString(); }
+    catch { continue; }
+
+    const hay = norm(label + " " + href);
+    let score = 0;
+    if (/antrag stellen|antragstellung|online.?antrag|antragsportal|antrag einreichen/.test(hay)) score += 50;
+    if (/forderportal|foerderportal|onlineportal|kundenportal|portal/.test(hay)) score += 28;
+    if (/antrag|formular/.test(hay)) score += 18;
+    if (/download|pdf/.test(hay)) score -= 8;
+    if (/foerderdatenbank\.de\/FDB\/Content\/DE\/Foerderprogramm/i.test(url)) score -= 20;
+    if (score < 18 || seen.has(url)) continue;
+
+    seen.add(url);
+    links.push({
+      label: label || "Zum Antrag / Förderportal",
+      url,
+      score
+    });
+  }
+
+  return links
+    .sort((a,b) => b.score - a.score)
+    .slice(0,5)
+    .map(({label,url}) => ({label,url}));
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "s-maxage=1800, stale-while-revalidate=7200");
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -418,6 +456,7 @@ export default async function handler(req, res) {
     const deadlineWarning = /Antragstellung .*nicht mehr möglich|musste .* bis zum|Portal .*geschlossen|Deadline .*geschlossen|nicht mehr berücksichtigt|bereits ausgeschöpft/i.test(text);
     const fundingEstimate = estimateFunding(text, investment, size, target, locality, state);
     const fundingLevel = classifyFundingLevel({title, foerdergeber, foerdergebiet, text});
+    const applicationLinks = extractApplicationLinks(html, url);
 
     return res.status(200).json({
       ok:true,
@@ -433,6 +472,7 @@ export default async function handler(req, res) {
       deadline_warning: deadlineWarning,
       funding_estimate: fundingEstimate,
       funding_level: fundingLevel,
+      application_links: applicationLinks,
       source_url:url,
       attribution:"Quelle: Förderdatenbank des Bundes. Förderbetrag ist eine technische Schätzung auf Basis erkannter Förderquote/Höchstbeträge und keine Förderzusage."
     });
