@@ -42,12 +42,12 @@ button{cursor:pointer}
 .benefitIcon{width:42px;height:42px;border-radius:50%;background:#eaf3ff;color:#1765df;display:grid;place-items:center;font-size:20px;font-weight:900;flex:none}
 .benefit strong{font-size:12px;display:block;line-height:1.25}
 .benefit span{font-size:11px;color:#4e6c91;display:block;margin-top:3px;line-height:1.25}
-.heroVisual{height:390px;position:relative;overflow:hidden;border-radius:28px;clip-path:polygon(17% 0,100% 0,100% 100%,0 100%,10% 61%)}
-.heroVisual img,.heroVisual svg{width:100%;height:100%;object-fit:cover;display:block}
-.heroShade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,23,45,.12),rgba(5,23,45,0) 45%,rgba(5,23,45,.10))}
-.heroMessage{position:absolute;left:22%;top:46%;color:#fff;font-size:31px;font-weight:950;line-height:1.03;text-shadow:0 2px 18px rgba(0,0,0,.22)}
-.heroMessage:after{content:"";display:block;width:68px;height:5px;background:#2a74ff;border-radius:8px;margin-top:15px}
-.quoteCard{position:absolute;right:20px;bottom:20px;background:rgba(255,255,255,.90);backdrop-filter:blur(10px);padding:13px 15px;border-radius:12px;font-size:13px;line-height:1.35;max-width:190px;color:#1d3047;box-shadow:0 10px 28px rgba(0,0,0,.14)}
+.heroVisual{aspect-ratio:1.43/1;height:auto;min-height:370px;position:relative;overflow:hidden;border-radius:28px;clip-path:polygon(17% 0,100% 0,100% 100%,0 100%,10% 61%);background:#dfeaf0}
+.heroVisual img,.heroVisual svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.heroShade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(7,25,45,.32) 0%,rgba(7,25,45,.14) 28%,rgba(7,25,45,0) 58%,rgba(7,25,45,.05) 100%)}
+.heroMessage{position:absolute;z-index:3;left:18%;top:49%;transform:translateY(-50%);max-width:205px;color:#fff;font-size:clamp(25px,2.25vw,34px);font-weight:950;line-height:1.02;letter-spacing:-.8px;text-shadow:0 2px 18px rgba(0,0,0,.24)}
+.heroMessage:after{content:"";display:block;width:68px;height:5px;background:#2a74ff;border-radius:8px;margin-top:14px}
+.quoteCard{position:absolute;z-index:4;right:18px;bottom:18px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);padding:13px 15px;border-radius:12px;font-size:13px;line-height:1.35;width:190px;max-width:34%;color:#1d3047;box-shadow:0 10px 28px rgba(0,0,0,.14)}
 .searchCard{margin-top:6px;border:1px solid #e0e7ef;border-radius:17px;padding:18px;background:#fff;box-shadow:0 8px 24px rgba(28,58,90,.05)}
 .searchGrid{display:grid;grid-template-columns:1.45fr .85fr .85fr .95fr auto;gap:12px;align-items:end}
 .field label{display:block;font-size:11px;font-weight:850;color:#34465c}
@@ -85,10 +85,10 @@ button{cursor:pointer}
 footer{margin:26px 0 40px;text-align:center;font-size:10px;color:#8b97a5}
 @media(max-width:980px){
  .header{height:auto}.headerInner{padding:10px 0;flex-wrap:wrap}.logo{min-width:0}.navLinks{display:none}.devCoupon{margin-left:auto}
- .hero{grid-template-columns:1fr}.heroCopy{padding-left:0}.heroVisual{height:320px;clip-path:none}.searchGrid{grid-template-columns:1fr 1fr}.analyseBtn{width:100%}.card{grid-template-columns:70px 1fr 160px}.resultRelevance{justify-content:flex-start}.resultActions{grid-column:2/-1;grid-template-columns:1fr 1fr}.applicationHelp{grid-column:1/-1}
+ .hero{grid-template-columns:1fr}.heroCopy{padding-left:0}.heroVisual{aspect-ratio:1.65/1;min-height:310px;clip-path:none}.heroMessage{left:9%;top:48%;max-width:180px;font-size:28px}.quoteCard{right:14px;bottom:14px;width:170px;max-width:32%;font-size:12px;padding:11px 12px}.searchGrid{grid-template-columns:1fr 1fr}.analyseBtn{width:100%}.card{grid-template-columns:70px 1fr 160px}.resultRelevance{justify-content:flex-start}.resultActions{grid-column:2/-1;grid-template-columns:1fr 1fr}.applicationHelp{grid-column:1/-1}
 }
 @media(max-width:650px){
- .shell{padding:0 15px}.devCoupon{width:100%;justify-content:center}.hero h1{font-size:42px}.hero h2{font-size:24px}.benefits{flex-direction:column;gap:12px}.heroVisual{height:270px}.searchGrid,.advancedGrid{grid-template-columns:1fr}.card{grid-template-columns:58px 1fr;padding:14px}.programIcon{width:56px;height:56px;font-size:25px}.resultAmount,.resultRelevance,.resultActions{grid-column:1/-1}.resultAmount{border-left:0;border-top:1px solid #e3e9f0;padding:12px 0 0}.resultActions{grid-template-columns:1fr}.resultsToolbar{align-items:flex-start}.resultsToolbar .left{font-size:24px}
+ .shell{padding:0 15px}.devCoupon{width:100%;justify-content:center}.hero h1{font-size:42px}.hero h2{font-size:24px}.benefits{flex-direction:column;gap:12px}.heroVisual{aspect-ratio:1.38/1;min-height:270px}.heroMessage{left:8%;top:44%;max-width:145px;font-size:clamp(22px,7vw,27px);line-height:1}.heroMessage:after{width:52px;height:4px;margin-top:10px}.quoteCard{right:10px;bottom:10px;width:145px;max-width:43%;font-size:10px;line-height:1.3;padding:9px 10px;border-radius:10px}.searchGrid,.advancedGrid{grid-template-columns:1fr}.card{grid-template-columns:58px 1fr;padding:14px}.programIcon{width:56px;height:56px;font-size:25px}.resultAmount,.resultRelevance,.resultActions{grid-column:1/-1}.resultAmount{border-left:0;border-top:1px solid #e3e9f0;padding:12px 0 0}.resultActions{grid-template-columns:1fr}.resultsToolbar{align-items:flex-start}.resultsToolbar .left{font-size:24px}
 }
 </style>
 </head>
@@ -164,7 +164,7 @@ footer{margin:26px 0 40px;text-align:center;font-size:10px;color:#8b97a5}
     <path d="M1010 726 l28-88 28 88z"/><path d="M1062 732 l24-74 24 74z"/><path d="M1120 726 l27-82 27 82z"/>
   </g>
 
-  <g transform="translate(720,108)">
+  <g transform="translate(790,125) scale(.88)">
     <ellipse cx="220" cy="106" rx="52" ry="64" fill="#b47a57"/>
     <path d="M166 112 q8-78 66-83 q61 4 74 91 q-22-27-50-27 q-28 1-49 18 q-22 17-41 1z" fill="#6d3d27"/>
     <path d="M182 44 q49-57 97 7 q-47-23-97-7z" fill="#754126"/>
