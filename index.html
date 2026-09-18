@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FörderRadar Deutschland – Test</title>
+  <style>
+    :root{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#172033;background:#f5f7fb}
+    *{box-sizing:border-box} body{margin:0}
+    .wrap{max-width:980px;margin:0 auto;padding:40px 20px 70px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}
+    .brand{font-weight:800;font-size:22px}.badge{font-size:12px;background:#fff3cd;color:#755a00;padding:7px 10px;border-radius:999px;border:1px solid #ffe69c}
+    .hero{background:white;border:1px solid #e5e9f2;border-radius:22px;padding:34px;box-shadow:0 12px 38px rgba(31,46,80,.08)}
+    h1{font-size:44px;line-height:1.06;margin:0 0 14px;letter-spacing:-1.5px}
+    .sub{font-size:18px;color:#5d6678;max-width:720px;line-height:1.55}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
+    .card{background:#f8fafc;border:1px solid #e8ecf4;border-radius:16px;padding:18px}
+    .card strong{display:block;margin-bottom:7px}.muted{color:#687386;font-size:14px;line-height:1.5}
+    .form{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{font-size:13px;font-weight:700;color:#586174}
+    input,select{width:100%;margin-top:6px;padding:12px 13px;border:1px solid #dfe4ed;border-radius:11px;background:white;font:inherit}
+    .full{grid-column:1/-1}
+    button{border:0;background:#172033;color:white;padding:13px 18px;border-radius:11px;font-weight:800;cursor:pointer}
+    #result{display:none;margin-top:20px;padding:18px;border:1px solid #cfe7d8;background:#f0faf4;border-radius:14px}
+    .status{display:flex;gap:9px;align-items:center}.dot{width:10px;height:10px;border-radius:50%;background:#20a464}
+    footer{margin-top:24px;color:#7a8496;font-size:13px;text-align:center}
+    @media(max-width:700px){h1{font-size:34px}.grid,.form{grid-template-columns:1fr}.full{grid-column:auto}.hero{padding:24px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">FörderRadar Deutschland</div>
+      <div class="badge">TEST-PREVIEW</div>
+    </div>
+    <section class="hero">
+      <h1>Fördermittel finden, bevor du sie verpasst.</h1>
+      <p class="sub">Technischer Teststand. Die Grant-Finder-Engine ist importiert; die deutsche Datenanbindung an Förderdatenbank, KfW, BAFA und Länderprogramme ist der nächste Entwicklungsschritt.</p>
+      <div class="grid">
+        <div class="card"><strong>Engine</strong><div class="status"><span class="dot"></span><span>Open-Source Grant-Finder importiert</span></div></div>
+        <div class="card"><strong>Datenstand</strong><span class="muted">Aktuell noch US-orientierte Quellen. Deutsche Quellen sind noch nicht produktiv angebunden.</span></div>
+        <div class="card"><strong>Ziel</strong><span class="muted">Profil anlegen → passende Programme matchen → Fristen überwachen → Förderstrategie erzeugen.</span></div>
+        <div class="card"><strong>Deployment</strong><span class="muted">Diese Seite dient zunächst nur zum Testen des externen Zugriffs und der späteren Produktoberfläche.</span></div>
+      </div>
+      <div class="form">
+        <div><label>Bundesland<select><option>Bayern</option><option>Baden-Württemberg</option><option>Hessen</option><option>Nordrhein-Westfalen</option></select></label></div>
+        <div><label>Zielgruppe<select><option>KMU / Unternehmen</option><option>Privatperson</option><option>Gründer</option><option>Verein</option></select></label></div>
+        <div class="full"><label>Vorhaben<input value="Digitalisierung und Energieeffizienz im Unternehmen"></label></div>
+        <div class="full"><button onclick="runDemo()">Testlauf starten</button></div>
+      </div>
+      <div id="result">
+        <strong>Demo erfolgreich.</strong>
+        <div class="muted" style="margin-top:6px">Die Weboberfläche funktioniert. Das echte Fördermatching wird im nächsten Schritt mit deutschen Datenquellen verbunden.</div>
+      </div>
+    </section>
+    <footer>FörderRadar Deutschland · Entwicklungsstand · keine Förderberatung</footer>
+  </div>
+  <script>function runDemo(){document.getElementById('result').style.display='block'}</script>
+</body>
+</html>
