@@ -7,6 +7,11 @@ const DEV_COUPON = {
   development_only: true
 };
 
+const ALLOWED_TARGETS = new Set([
+  "Unternehmen","Privatperson","Gründer","Kommune","Verein",
+  "Hochschule","Forschungseinrichtung","Öffentliche Einrichtung"
+]);
+
 function normalizeCode(value = "") {
   return String(value).trim().toUpperCase().replace(/\s+/g, "");
 }
@@ -17,20 +22,22 @@ export default async function handler(req, res) {
 
   const code = normalizeCode(req.query.code || "");
   const redeem = String(req.query.redeem || "") === "1";
-  const programUrl = String(req.query.program_url || "").trim();
+  const target = String(req.query.target || "").trim();
 
   const validCoupon = DEV_COUPON.active && code === DEV_COUPON.code;
   const discount = validCoupon ? Math.min(PRICE_CENTS, DEV_COUPON.discount_cents) : 0;
   const total = Math.max(0, PRICE_CENTS - discount);
+  const validTarget = ALLOWED_TARGETS.has(target);
 
   const response = {
     ok: true,
     product: "Persönliche Förderprüfung",
+    scope: "target_group",
+    target: validTarget ? target : null,
     currency: "EUR",
     regular_price_cents: PRICE_CENTS,
     discount_cents: discount,
     total_cents: total,
-    program_url: programUrl || null,
     coupon: validCoupon ? {
       valid: true,
       code: DEV_COUPON.code,
@@ -53,12 +60,12 @@ export default async function handler(req, res) {
   };
 
   if (redeem) {
-    if (!programUrl) {
+    if (!validTarget) {
       response.status = "invalid_request";
-      response.message = "Kein Förderprogramm ausgewählt.";
+      response.message = "Keine gültige Zielgruppe ausgewählt.";
     } else if (validCoupon && total === 0) {
       response.status = "granted";
-      response.message = "Persönliche Förderprüfung im Entwicklungsmodus kostenlos freigeschaltet.";
+      response.message = "Alle persönlichen Förderprüfungen für die Zielgruppe „" + target + "“ wurden im Entwicklungsmodus freigeschaltet.";
     } else {
       response.status = "payment_required";
       response.message = "Für diesen Betrag ist später eine Zahlungsabwicklung erforderlich.";
