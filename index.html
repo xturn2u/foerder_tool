@@ -347,7 +347,13 @@ function setVerifiedLevel(i,level){
 function money(v){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(v)||0)}
 function estimateHtml(e){
   if(!e)return '';
-  if(!e.available)return '<div class="estimateUnavailable">Förderbetrag derzeit nicht belastbar berechenbar: '+esc(e.reason||'Keine eindeutige Förderquote erkannt.')+'</div>';
+  if(!e.available){
+    const missing=(e.missing_inputs||[]).map(x=>x.label).filter(Boolean);
+    const missingText=missing.length
+      ? '<div class="estimateCalc"><strong>Noch benötigt:</strong> '+missing.map(esc).join(', ')+'</div>'
+      : (e.source_gap?'<div class="estimateCalc"><strong>Noch offen:</strong> Die Förderquote bzw. Höchstgrenze muss aus der Primärquelle des Fördergebers ergänzt werden.</div>':'');
+    return '<div class="estimateUnavailable"><strong>Förderbetrag noch nicht belastbar berechenbar.</strong><div class="estimateCalc">'+esc(e.reason||'Keine eindeutige Förderquote erkannt.')+'</div>'+missingText+'</div>';
+  }
   let calc=money(e.eligible_base)+' × '+esc(e.rate)+' %';
   if(e.max_grant)calc+=' · Höchstbetrag berücksichtigt';
   const confidence=e.confidence?' · Sicherheit: '+esc(e.confidence):'';
@@ -463,7 +469,7 @@ async function loadTopDetails(programs,p){
       const index=cursor++;
       const program=programs[index];
       try{
-        const params=new URLSearchParams({url:program.url,investment:p.investment||'',size:p.size||'',target:p.target||''});
+        const params=new URLSearchParams({url:program.url,investment:p.investment||'',size:p.size||'',target:p.target||'',locality:p.locality||'',state:p.state||''});
         const r=await fetch('/api/program?'+params);
         const d=await r.json();
         if(!r.ok||!d.ok)throw new Error(d.error||'Programmdetails nicht verfügbar');
@@ -488,7 +494,7 @@ async function inspectProgramByUrl(encodedUrl,btn){
     let d=program._detail;
     if(!d){
       const pr=profile();
-      const r=await fetch('/api/program?'+new URLSearchParams({url:program.url,investment:pr.investment||'',size:pr.size||'',target:pr.target||''}));
+      const r=await fetch('/api/program?'+new URLSearchParams({url:program.url,investment:pr.investment||'',size:pr.size||'',target:pr.target||'',locality:pr.locality||'',state:pr.state||''}));
       d=await r.json(); if(!r.ok||!d.ok)throw new Error(d.error||'Detailprüfung fehlgeschlagen');
       program._detail=d;
     }
