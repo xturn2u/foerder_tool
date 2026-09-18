@@ -275,6 +275,26 @@ function estimateFunding(text, investment, size, target) {
 
   const rateAlternatives = [...new Set(topRates.map(r => r.rate))];
   const ambiguous = rateAlternatives.length > 1 && !selected.explicit;
+  const selectedContext = norm(selected.context);
+  const conditionalRule = /(c-gebiet|grw-gebiet|regionalforderung|regionalförderung|einkommensbonus|klimageschwindigkeitsbonus|effizienzbonus|wohneinheit|netto.?grundflache|nettogrundfläche|geb[aä]udefl[aä]che|bonus|staffel|je m2|pro m2)/.test(selectedContext);
+
+  if (ambiguous) {
+    return {
+      available:false,
+      reason:"Mehrere unterschiedliche Förderquoten wurden erkannt. Ohne zusätzliche Programmkriterien wäre eine Zahl irreführend.",
+      alternatives:rateAlternatives,
+      rule_text:selected.context
+    };
+  }
+
+  if (conditionalRule && !selected.explicit) {
+    return {
+      available:false,
+      reason:"Die Förderquote hängt von zusätzlichen Bedingungen wie Region, Bonus, Gebäudegröße oder Förderstufe ab. Dafür fehlen noch Eingabedaten.",
+      alternatives:rateAlternatives,
+      rule_text:selected.context
+    };
+  }
 
   return {
     available:true,
@@ -287,8 +307,8 @@ function estimateFunding(text, investment, size, target) {
     max_eligible_cost:applicableMaxEligible?.amount || null,
     min_eligible_cost:minEligible?.amount || null,
     min_grant:minGrant?.amount || null,
-    confidence:selected.explicit ? "hoch" : (ambiguous ? "niedrig" : "mittel"),
-    ambiguous,
+    confidence:selected.explicit ? "hoch" : "mittel",
+    ambiguous:false,
     alternatives:rateAlternatives,
     rule_text:selected.context,
     notes
