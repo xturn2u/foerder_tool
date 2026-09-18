@@ -113,7 +113,7 @@ footer{margin:26px 0 40px;text-align:center;font-size:10px;color:#8b97a5}
       </div>
     </div>
     <div class="heroVisual">
-      <img src="/hero.svg" alt="Berglandschaft als Symbol für neue Möglichkeiten">
+      <img src="/hero-photo.jpg" alt="Berglandschaft mit Wanderin als Symbol für neue Möglichkeiten">
       <div class="heroShade"></div>
       <div class="heroMessage">Heute<br>fördern.<br>Morgen<br>mehr erreichen.</div>
       <div class="quoteCard">„Gute Ideen verdienen Unterstützung.“</div>
@@ -438,7 +438,11 @@ async function searchFunding(){
 
     status.textContent=usablePrograms.length ? '' : 'Keine verwertbaren Programme erkannt';
 
-    const materialWarnings=(data.warnings||[]).filter(w=>/kommunal|beta|fehlen|nicht verfügbar|geschlossen|abgelaufen|fehler/i.test(w));
+    const materialWarnings=(data.warnings||[]).filter(w=>{
+      const text=String(w||'');
+      if(/Investitionssumme wird berücksichtigt|Projektstart ist erfasst|Unternehmensgröße wird jetzt/i.test(text)) return false;
+      return /kommunal|beta|nicht verfügbar|geschlossen|abgelaufen|fehler/i.test(text);
+    });
     warnings.innerHTML=materialWarnings.map(w=>'<div class="warn">'+esc(w)+'</div>').join('');
 
     if(!usablePrograms.length){
