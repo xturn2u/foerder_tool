@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Alpenlandschaft">
+<defs>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dff5ff"/><stop offset=".55" stop-color="#eef8fb"/><stop offset="1" stop-color="#f8fbfb"/></linearGradient>
+  <linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7aa7b8"/><stop offset="1" stop-color="#496f7e"/></linearGradient>
+  <linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d7f7c"/><stop offset="1" stop-color="#174c4c"/></linearGradient>
+  <linearGradient id="valley" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#83c7a4"/><stop offset="1" stop-color="#2f786c"/></linearGradient>
+  <radialGradient id="sun"><stop offset="0" stop-color="#fff7c7" stop-opacity=".95"/><stop offset="1" stop-color="#fff7c7" stop-opacity="0"/></radialGradient>
+  <filter id="blur"><feGaussianBlur stdDeviation="24"/></filter>
+</defs>
+<rect width="1200" height="700" fill="url(#sky)"/>
+<circle cx="940" cy="120" r="180" fill="url(#sun)" filter="url(#blur)"/>
+<path d="M0 405 L155 255 L255 338 L390 205 L525 332 L665 180 L810 330 L938 210 L1060 330 L1200 220 L1200 520 L0 520Z" fill="#b7d2dc"/>
+<path d="M0 460 L180 300 L330 420 L500 260 L650 415 L830 250 L1010 420 L1200 295 L1200 560 L0 560Z" fill="url(#m1)"/>
+<path d="M0 535 L175 410 L320 500 L470 355 L640 505 L805 355 L975 500 L1120 395 L1200 455 L1200 610 L0 610Z" fill="url(#m2)"/>
+<path d="M0 550 C170 500 285 520 390 560 C515 608 610 520 745 540 C890 562 980 510 1200 530 L1200 700 L0 700Z" fill="url(#valley)"/>
+<path d="M380 620 C520 570 615 590 700 615 C800 646 900 600 1010 625 C1080 642 1135 635 1200 620 L1200 700 L350 700Z" fill="#d9efe1" opacity=".65"/>
+<path d="M590 618 C700 565 820 570 930 620 C820 654 700 666 590 618Z" fill="#86c8d2" opacity=".8"/>
+<g fill="#174b43" opacity=".95">
+<path d="M95 655 l28-85 28 85z"/><path d="M135 665 l25-78 25 78z"/><path d="M1040 665 l30-92 30 92z"/><path d="M1090 670 l24-72 24 72z"/><path d="M1020 670 l19-58 19 58z"/>
+</g>
+<g fill="none" stroke="#fff" stroke-width="8" opacity=".8">
+<path d="M345 330 l45-125 44 112"/><path d="M625 312 l40-132 43 118"/><path d="M910 310 l29-100 37 106"/>
+</g>
+</svg>
