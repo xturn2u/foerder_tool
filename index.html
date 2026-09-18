@@ -527,6 +527,7 @@ async function loadTopDetails(programs,p){
     }
   }
   await Promise.all([worker(),worker(),worker()]);
+  renderPremiumUnlockBar();
   renderPrograms();
 }
 function euroCents(cents){
@@ -668,7 +669,7 @@ function assessmentResultHtml(a,program){
 }
 async function loadPaidAssessment(program,panel,code,btn){
   panel.innerHTML='<span class="small">Primärquelle und persönliche Förderkriterien werden geprüft …</span>';
-  const pr=profile();
+  const pr=window.lastProfile||profile();
   try{
     const r=await fetch('/api/assessment?'+new URLSearchParams({
       url:program.url,code,target:pr.target||'',size:pr.size||'',state:pr.state||'',locality:pr.locality||'',
