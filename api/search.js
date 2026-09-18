@@ -139,6 +139,49 @@ function classifyQuickLevel({title="", giver="", area="", plain=""}) {
   return {type:"unknown",label:"Förder-Ebene prüfen",confidence:"niedrig"};
 }
 
+
+function isSpecificProgramUrl(url = "") {
+  return /^https:\/\/www\.foerderdatenbank\.de\/FDB\/Content\/DE\/Foerderprogramm\/(?:Bund|Land|EU)\/.+\.html(?:[?#].*)?$/i.test(url);
+}
+
+function isGenericTitle(title = "") {
+  const t = norm(title).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const blocked = new Set([
+    "forderprogramm",
+    "forderprogramme",
+    "foerderprogramm",
+    "foerderprogramme",
+    "forderung",
+    "foerderung",
+    "forderung finden",
+    "foerderung finden",
+    "suchergebnisse",
+    "programmsuche"
+  ]);
+  return !t || blocked.has(t) || t.length < 8;
+}
+
+function hasMeaningfulValue(value = "") {
+  const v = clean(value);
+  if (!v || v.length < 3) return false;
+  return !/^(?:-|–|—|n\/?a|keine angabe|nicht angegeben|programm gelistet)$/i.test(v);
+}
+
+function isUsableProgram(program) {
+  if (!program || isGenericTitle(program.title) || !isSpecificProgramUrl(program.url)) return false;
+
+  const signals = [
+    program.who,
+    program.what,
+    program.giver,
+    program.area
+  ].filter(hasMeaningfulValue).length;
+
+  // Zwei unabhängige Inhaltsfelder verhindern Navigations-/Überschrifts-Treffer,
+  // ohne valide Programme wegen eines einzelnen fehlenden Such-Snippets zu verlieren.
+  return signals >= 2;
+}
+
 function tokens(q = "") {
   const stop = new Set(["und","oder","für","mit","der","die","das","ein","eine","von","im","in","zu","zur","zum","am","an"]);
   return norm(q).split(/[^a-z0-9äöüß]+/i).filter(x => x.length > 2 && !stop.has(x));
@@ -191,9 +234,8 @@ function parsePrograms(html, searchTerm) {
   for (let i = 0; i < matches.length; i++) {
     const m = matches[i];
     const title = clean(m[2]);
-    if (!title || title.length < 4) continue;
     const href = absoluteUrl(m[1]);
-    if (seen.has(href)) continue;
+    if (isGenericTitle(title) || !isSpecificProgramUrl(href) || seen.has(href)) continue;
 
     const start = m.index + m[0].length;
     const end = i + 1 < matches.length ? matches[i + 1].index : Math.min(html.length, start + 5000);
@@ -208,7 +250,7 @@ function parsePrograms(html, searchTerm) {
     const area = (areaMatch?.[1] || "").trim().slice(0, 220);
     const fundingLevel = classifyQuickLevel({title,giver,area,plain});
 
-    rows.push({
+    const program = {
       title,
       url: href,
       who: (whoMatch?.[1] || "").trim().slice(0, 360),
@@ -218,8 +260,10 @@ function parsePrograms(html, searchTerm) {
       funding_level: fundingLevel,
       status,
       foundBy: searchTerm
-    });
+    };
 
+    if (!isUsableProgram(program)) continue;
+    rows.push(program);
     seen.add(href);
     if (rows.length >= 16) break;
   }
@@ -338,7 +382,10 @@ export default async function handler(req, res) {
       );
     }
 
-    programs = programs.sort((a,b) => b.fit - a.fit).slice(0, 24);
+    programs = programs
+      .filter(isUsableProgram)
+      .sort((a,b) => b.fit - a.fit)
+      .slice(0, 24);
 
     const warnings = [];
     if (size) warnings.push("Unternehmensgröße wird jetzt als offizieller Filter der Förderdatenbank verwendet. Die endgültige Förderfähigkeit kann trotzdem zusätzliche KMU-/Beihilfekriterien enthalten.");
