@@ -196,7 +196,7 @@ function scoreProgram(program, profile) {
 
   if (matchedTopics.length) {
     score += Math.min(32, matchedTopics.length * 12);
-    reasons.push("Themenmatch: " + matchedTopics.join(", "));
+    reasons.push("Themenbezug: " + matchedTopics.join(", "));
   }
 
   if (profile.target) {
@@ -403,7 +403,7 @@ export default async function handler(req, res) {
       source: "Förderdatenbank des Bundes",
       source_home: "https://www.foerderdatenbank.de/",
       warnings,
-      attribution: "Datenquelle: Förderdatenbank des Bundes. Match-Werte sind eine technische Vorsortierung und keine Förderzusage."
+      attribution: "Datenquelle: Förderdatenbank des Bundes. Die Relevanzbewertung ist eine technische Vorsortierung und keine Aussage über Förderfähigkeit oder Bewilligungswahrscheinlichkeit."
     });
   } catch (err) {
     return res.status(500).json({
