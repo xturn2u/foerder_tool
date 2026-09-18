@@ -21,7 +21,7 @@
     .step.active{background:#172033;color:white}
     .section{margin-top:24px;padding-top:22px;border-top:1px solid #edf0f5}.section h2{font-size:16px;margin:0 0 14px}
     .form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
-    .full{grid-column:1/-1}.thirds{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+    .full{grid-column:1/-1}.thirds{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.conditional-hidden{display:none!important}.context-note{grid-column:1/-1;margin-top:-2px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #e6eaf2;color:#667085;font-size:12px;line-height:1.45}
     label{font-size:13px;font-weight:800;color:#586174;display:block}
     input,select{width:100%;margin-top:6px;padding:12px 13px;border:1px solid #dfe4ed;border-radius:11px;background:#fff;font:inherit;color:#172033;outline:none}
     input:focus,select:focus{border-color:#9db5ed;box-shadow:0 0 0 3px #eaf0ff}
@@ -70,7 +70,7 @@
       </div>
 
       <div class="section">
-        <h2>Unternehmens- und Projektprofil</h2>
+        <h2 id="profileHeading">Unternehmens- und Projektprofil</h2>
         <div class="form">
           <div>
             <label>Bundesland
@@ -92,7 +92,7 @@
           </div>
 
           <div class="thirds">
-            <div>
+            <div id="sizeField">
               <label>Unternehmensgröße
                 <select id="size">
                   <option value="">Nicht angegeben</option>
@@ -101,7 +101,7 @@
               </label>
             </div>
             <div>
-              <label>Investitionssumme (€)
+              <label><span id="investmentLabel">Investitionssumme (€)</span>
                 <input id="investment" inputmode="numeric" type="number" min="0" step="1000" placeholder="z. B. 100000">
               </label>
             </div>
@@ -112,17 +112,19 @@
             </div>
           </div>
 
+          <div id="audienceHint" class="context-note">Unternehmensgröße hilft dabei, KMU-spezifische Programme später genauer zu bewerten.</div>
+
           <div class="full">
             <label>Themen auswählen</label>
             <div class="topics" id="topics">
-              <label class="topic"><input type="checkbox" value="Digitalisierung"><span>Digitalisierung</span></label>
-              <label class="topic"><input type="checkbox" value="Künstliche Intelligenz"><span>KI</span></label>
-              <label class="topic"><input type="checkbox" value="Energieeffizienz"><span>Energieeffizienz</span></label>
-              <label class="topic"><input type="checkbox" value="Erneuerbare Energien"><span>Erneuerbare Energien</span></label>
-              <label class="topic"><input type="checkbox" value="Maschinen Investition"><span>Maschinen / Investition</span></label>
-              <label class="topic"><input type="checkbox" value="Forschung Innovation"><span>Forschung & Innovation</span></label>
-              <label class="topic"><input type="checkbox" value="Weiterbildung"><span>Weiterbildung</span></label>
-              <label class="topic"><input type="checkbox" value="Gründung"><span>Gründung</span></label>
+              <label class="topic" data-audiences="Unternehmen,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Digitalisierung"><span>Digitalisierung</span></label>
+              <label class="topic" data-audiences="Unternehmen,Gründer,Kommune,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Künstliche Intelligenz"><span>KI</span></label>
+              <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Energieeffizienz"><span>Energieeffizienz</span></label>
+              <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Erneuerbare Energien"><span>Erneuerbare Energien</span></label>
+              <label class="topic" data-audiences="Unternehmen,Gründer"><input type="checkbox" value="Maschinen Investition"><span>Maschinen / Investition</span></label>
+              <label class="topic" data-audiences="Unternehmen,Gründer,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Forschung Innovation"><span>Forschung & Innovation</span></label>
+              <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Weiterbildung"><span>Weiterbildung</span></label>
+              <label class="topic" data-audiences="Gründer"><input type="checkbox" value="Gründung"><span>Gründung</span></label>
             </div>
           </div>
 
@@ -160,12 +162,95 @@
 <script>
 const PROFILE_KEY='foerderradar-profile-v02';
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function getTopics(){return [...document.querySelectorAll('#topics input:checked')].map(x=>x.value)}
+const TARGET_UI={
+  'Unternehmen':{
+    heading:'Unternehmens- und Projektprofil',
+    showSize:true,
+    investmentLabel:'Investitionssumme (€)',
+    hint:'Unternehmensgröße hilft dabei, KMU-spezifische Programme später genauer zu bewerten.',
+    placeholder:'z. B. Neue CNC-Maschine, Energiemanagement und KI-gestützte Produktionsplanung'
+  },
+  'Privatperson':{
+    heading:'Persönliches Förderprofil',
+    showSize:false,
+    investmentLabel:'Geplante Ausgaben (€)',
+    hint:'Für Privatpersonen blenden wir Unternehmensangaben aus. Relevant bleiben Wohnort, Vorhaben, Kosten und geplanter Start.',
+    placeholder:'z. B. Wärmepumpe, Photovoltaik, energetische Sanierung oder Weiterbildung'
+  },
+  'Gründer':{
+    heading:'Gründungs- und Projektprofil',
+    showSize:false,
+    investmentLabel:'Geplante Investition (€)',
+    hint:'Bei Gründungen stehen Vorhaben, Investitionsbedarf und Projektstart im Vordergrund; eine Unternehmensgröße ist zu diesem Zeitpunkt meist nicht aussagekräftig.',
+    placeholder:'z. B. Unternehmensgründung, Softwareentwicklung, Ausstattung oder Markteinführung'
+  },
+  'Kommune':{
+    heading:'Kommunales Förderprofil',
+    showSize:false,
+    investmentLabel:'Investitionssumme (€)',
+    hint:'Bei Kommunen werden Unternehmensangaben ausgeblendet. Entscheidend sind Maßnahme, Investitionsvolumen und Zeitpunkt.',
+    placeholder:'z. B. kommunale Wärmeplanung, Digitalisierung, Sanierung oder Ladeinfrastruktur'
+  },
+  'Verein':{
+    heading:'Vereins- und Projektprofil',
+    showSize:false,
+    investmentLabel:'Projektbudget (€)',
+    hint:'Für Vereine sind Projektinhalt, Budget und Start relevant; Unternehmensgröße wird nicht benötigt.',
+    placeholder:'z. B. energetische Sanierung, Vereinsdigitalisierung oder Weiterbildung'
+  },
+  'Hochschule':{
+    heading:'Hochschul- und Forschungsprofil',
+    showSize:false,
+    investmentLabel:'Projektbudget (€)',
+    hint:'Für Hochschulen stehen Forschungs- und Projektinhalt, Budget und Laufzeit im Vordergrund.',
+    placeholder:'z. B. Forschungsprojekt, Transfer, KI-Infrastruktur oder Energieeffizienz'
+  },
+  'Forschungseinrichtung':{
+    heading:'Forschungs- und Projektprofil',
+    showSize:false,
+    investmentLabel:'Projektbudget (€)',
+    hint:'Für Forschungseinrichtungen werden Unternehmensangaben ausgeblendet und projektspezifische Kriterien priorisiert.',
+    placeholder:'z. B. Forschungsverbund, Demonstrator, KI-Projekt oder Technologietransfer'
+  },
+  'Öffentliche Einrichtung':{
+    heading:'Förderprofil der öffentlichen Einrichtung',
+    showSize:false,
+    investmentLabel:'Projektbudget (€)',
+    hint:'Für öffentliche Einrichtungen sind Maßnahme, Budget, Fördergebiet und Projektstart relevant.',
+    placeholder:'z. B. Digitalisierung, Gebäudesanierung, Energieeffizienz oder Weiterbildung'
+  }
+};
+
+function applyTargetLogic(){
+  const target=document.getElementById('target').value;
+  const cfg=TARGET_UI[target]||TARGET_UI.Unternehmen;
+  const sizeField=document.getElementById('sizeField');
+
+  document.getElementById('profileHeading').textContent=cfg.heading;
+  document.getElementById('investmentLabel').textContent=cfg.investmentLabel;
+  document.getElementById('audienceHint').textContent=cfg.hint;
+  document.getElementById('q').placeholder=cfg.placeholder;
+
+  sizeField.classList.toggle('conditional-hidden',!cfg.showSize);
+  if(!cfg.showSize)document.getElementById('size').value='';
+
+  document.querySelectorAll('#topics .topic').forEach(label=>{
+    const allowed=(label.dataset.audiences||'').split(',').map(x=>x.trim());
+    const visible=allowed.includes(target);
+    label.classList.toggle('conditional-hidden',!visible);
+    if(!visible)label.querySelector('input').checked=false;
+  });
+}
+
+function getTopics(){
+  return [...document.querySelectorAll('#topics .topic:not(.conditional-hidden) input:checked')].map(x=>x.value)
+}
 function profile(){
+  const sizeVisible=!document.getElementById('sizeField').classList.contains('conditional-hidden');
   return {
     state:document.getElementById('state').value,
     target:document.getElementById('target').value,
-    size:document.getElementById('size').value,
+    size:sizeVisible?document.getElementById('size').value:'',
     investment:document.getElementById('investment').value,
     start:document.getElementById('start').value,
     q:document.getElementById('q').value.trim(),
@@ -178,12 +263,14 @@ function loadProfile(){
     const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null'); if(!p)return;
     ['state','target','size','investment','start','q'].forEach(id=>{if(p[id]!==undefined&&document.getElementById(id))document.getElementById(id).value=p[id]});
     document.querySelectorAll('#topics input').forEach(x=>x.checked=(p.topics||[]).includes(x.value));
+    applyTargetLogic();
   }catch{}
 }
 function resetProfile(){
   localStorage.removeItem(PROFILE_KEY);
   document.getElementById('state').value='Bayern';
   document.getElementById('target').value='Unternehmen';
+  applyTargetLogic();
   document.getElementById('size').value='';
   document.getElementById('investment').value='';
   document.getElementById('start').value='';
@@ -225,7 +312,7 @@ async function searchFunding(){
       return;
     }
 
-    results.innerHTML=data.programs.map(p=>`
+    window.lastPrograms=data.programs;results.innerHTML=data.programs.map((p,i)=>`
       <article class="card">
         <div class="row">
           <div class="title">${esc(p.title)}</div>
@@ -266,7 +353,12 @@ async function inspectProgram(i,btn){
   }catch(e){box.innerHTML='<div class="error">Detailprüfung fehlgeschlagen: '+esc(e.message)+'</div>';btn.textContent='Erneut prüfen'}
   finally{btn.disabled=false}
 }
+document.getElementById('target').addEventListener('change',()=>{
+  applyTargetLogic();
+  saveProfile();
+});
 loadProfile();
+applyTargetLogic();
 </script>
 </body>
 </html>
