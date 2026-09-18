@@ -27,11 +27,208 @@ function extract(text, startLabel, endLabels) {
   return (text.match(re)?.[1] || "").trim();
 }
 
+function norm(s = "") {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function moneyToNumber(raw = "") {
+  const v = raw.replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function contextAround(text, index, length, radius = 220) {
+  const start = Math.max(0, index - radius);
+  const end = Math.min(text.length, index + length + radius);
+  return text.slice(start, end).trim();
+}
+
+function sizeClass(size = "") {
+  if (/1.?9/.test(size)) return "micro";
+  if (/10.?49/.test(size)) return "small";
+  if (/50.?249/.test(size)) return "medium";
+  if (/250/.test(size)) return "large";
+  return "";
+}
+
+function audienceMatchScore(context, size, target) {
+  const c = norm(context);
+  const cls = sizeClass(size);
+  let score = 0;
+  let explicit = false;
+
+  const hasMicro = /kleinstunternehmen|kleinstbetriebe/.test(c);
+  const hasSmall = /kleine unternehmen|kleinunternehmen/.test(c);
+  const hasMedium = /mittlere unternehmen/.test(c);
+  const hasSME = /kleine und mittlere unternehmen|\bkm[uü]\b/.test(c);
+  const hasLarge = /grossunternehmen|große unternehmen|grossen unternehmen/.test(c);
+
+  const hasAnySize = hasMicro || hasSmall || hasMedium || hasSME || hasLarge;
+
+  if (cls) {
+    const applicable =
+      (cls === "micro" && (hasMicro || hasSmall || hasSME)) ||
+      (cls === "small" && (hasSmall || hasSME)) ||
+      (cls === "medium" && (hasMedium || hasSME)) ||
+      (cls === "large" && hasLarge);
+
+    if (applicable) { score += 35; explicit = true; }
+    else if (hasAnySize) score -= 60;
+  }
+
+  const t = norm(target);
+  const groups = {
+    privatperson: /privatperson|private eigent|nat[uü]rliche person|privathaushalt|wohneigent[uü]mer/,
+    kommune: /kommune|kommunal|gemeinde|stadt|landkreis/,
+    verein: /verein|verband|vereinigung|gemeinn[uü]tzig/,
+    hochschule: /hochschule|universit[aä]t/,
+    forschungseinrichtung: /forschungseinrichtung/,
+    gruender: /existenzgr[uü]nd|gr[uü]ndung|startup|start-up/
+  };
+  const key = t === "grunder" || t === "gründer" ? "gruender" : t;
+  if (groups[key]) {
+    if (groups[key].test(c)) { score += 30; explicit = true; }
+  }
+
+  return {score, explicit};
+}
+
+function extractRates(text, size, target) {
+  const matches = [...text.matchAll(/(\d{1,3}(?:[.,]\d+)?)\s*%/g)];
+  const candidates = [];
+
+  for (const m of matches) {
+    const rate = Number(m[1].replace(",", "."));
+    if (!(rate > 0 && rate <= 100)) continue;
+    const context = contextAround(text, m.index, m[0].length, 240);
+    const c = norm(context);
+
+    if (!/(zuschuss|forderung|foerderung|forderquote|foerderquote|fordersatz|foerdersatz|zuwendung|beihilfe|ausgaben|kosten)/.test(c)) continue;
+    if (/projektpauschale/.test(c) && !/(zuschuss|forderquote|foerderquote)/.test(c)) continue;
+    if (/darlehen|kredit/.test(c) && !/zuschuss/.test(c)) continue;
+
+    const audience = audienceMatchScore(context, size, target);
+    let score = 15 + audience.score;
+    if (/bis zu|maximal|hochstens|höchstens/.test(c)) score += 8;
+    if (/forderquote|foerderquote|fordersatz|foerdersatz|höhe des zuschusses|hoehe des zuschusses/.test(c)) score += 8;
+    if (/zuschuss/.test(c)) score += 5;
+
+    candidates.push({rate, context, score, explicit:audience.explicit});
+  }
+
+  candidates.sort((a,b) => b.score - a.score || b.rate - a.rate);
+  return candidates;
+}
+
+function extractMoneyRules(text, size, target) {
+  const matches = [...text.matchAll(/(\d{1,3}(?:\.\d{3})*(?:,\d+)?)\s*(?:EUR|Euro)/gi)];
+  const rules = [];
+
+  for (const m of matches) {
+    const amount = moneyToNumber(m[1]);
+    if (!amount) continue;
+    const context = contextAround(text, m.index, m[0].length, 220);
+    const c = norm(context);
+    const audience = audienceMatchScore(context, size, target);
+
+    let type = "other";
+    if (/(mindestforder|mindestfoerder|zuschuss muss mindestens|forderung.*mindestens|foerderung.*mindestens)/.test(c)) {
+      type = "min_grant";
+    } else if (/(maximal|hochstens|höchstens|bis zu)/.test(c) &&
+               /(zuschuss|forderung|foerderung|zuwendung|beihilfe)/.test(c) &&
+               !/(forderfahige kosten|förderfähige kosten|forderfahige ausgaben|förderfähige ausgaben|zuwendungsfahige kosten|zuwendungsfähige kosten|gesamtkosten|projektvolumen)/.test(c)) {
+      type = "max_grant";
+    } else if (/(forderfahige kosten|förderfähige kosten|forderfahige ausgaben|förderfähige ausgaben|zuwendungsfahige kosten|zuwendungsfähige kosten)/.test(c) &&
+               /(maximal|hochstens|höchstens|bis zu)/.test(c)) {
+      type = "max_eligible_cost";
+    } else if (/(mindestens|bagatellgrenze)/.test(c) &&
+               /(ausgaben|kosten|investition|gesamtkosten)/.test(c)) {
+      type = "min_eligible_cost";
+    }
+
+    if (type !== "other") {
+      rules.push({type, amount, context, score:10 + audience.score, explicit:audience.explicit});
+    }
+  }
+
+  return rules.sort((a,b) => b.score - a.score);
+}
+
+function estimateFunding(text, investment, size, target) {
+  if (!(investment > 0)) {
+    return {
+      available:false,
+      reason:"Keine Investitionssumme angegeben."
+    };
+  }
+
+  const rates = extractRates(text, size, target);
+  if (!rates.length) {
+    return {
+      available:false,
+      reason:"In der offiziellen Programmbeschreibung wurde keine belastbare prozentuale Förderquote erkannt."
+    };
+  }
+
+  const topScore = rates[0].score;
+  const topRates = rates.filter(r => r.score >= topScore - 2);
+  const selected = topRates.sort((a,b) => b.rate - a.rate)[0];
+  const moneyRules = extractMoneyRules(text, size, target);
+
+  const applicableMaxGrant = moneyRules.find(r => r.type === "max_grant" && r.score >= 10);
+  const applicableMaxEligible = moneyRules.find(r => r.type === "max_eligible_cost" && r.score >= 10);
+  const minEligible = moneyRules.find(r => r.type === "min_eligible_cost" && r.score >= 10);
+  const minGrant = moneyRules.find(r => r.type === "min_grant" && r.score >= 10);
+
+  const eligibleBase = applicableMaxEligible ? Math.min(investment, applicableMaxEligible.amount) : investment;
+  const rawAmount = eligibleBase * selected.rate / 100;
+  const estimatedAmount = applicableMaxGrant ? Math.min(rawAmount, applicableMaxGrant.amount) : rawAmount;
+
+  const notes = [];
+  if (applicableMaxEligible && investment > applicableMaxEligible.amount) {
+    notes.push("Die Berechnung wurde auf erkannte maximal förderfähige Kosten von " + applicableMaxEligible.amount + " EUR begrenzt.");
+  }
+  if (applicableMaxGrant && rawAmount > applicableMaxGrant.amount) {
+    notes.push("Der errechnete Betrag wurde auf einen erkannten Förderhöchstbetrag von " + applicableMaxGrant.amount + " EUR begrenzt.");
+  }
+  if (minEligible && investment < minEligible.amount) {
+    notes.push("Die Investitionssumme liegt unter einer erkannten Mindestgrenze von " + minEligible.amount + " EUR.");
+  }
+  if (minGrant && estimatedAmount < minGrant.amount) {
+    notes.push("Der errechnete Förderbetrag liegt unter einer erkannten Mindestfördersumme von " + minGrant.amount + " EUR.");
+  }
+
+  const rateAlternatives = [...new Set(topRates.map(r => r.rate))];
+  const ambiguous = rateAlternatives.length > 1 && !selected.explicit;
+
+  return {
+    available:true,
+    investment,
+    rate:selected.rate,
+    eligible_base:eligibleBase,
+    raw_amount:Math.round(rawAmount * 100) / 100,
+    amount:Math.round(estimatedAmount * 100) / 100,
+    max_grant:applicableMaxGrant?.amount || null,
+    max_eligible_cost:applicableMaxEligible?.amount || null,
+    min_eligible_cost:minEligible?.amount || null,
+    min_grant:minGrant?.amount || null,
+    confidence:selected.explicit ? "hoch" : (ambiguous ? "niedrig" : "mittel"),
+    ambiguous,
+    alternatives:rateAlternatives,
+    rule_text:selected.context,
+    notes
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "s-maxage=1800, stale-while-revalidate=7200");
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   const url = String(req.query.url || "").trim();
+  const investment = Number(req.query.investment || 0) || 0;
+  const size = String(req.query.size || "").trim();
+  const target = String(req.query.target || "").trim();
+
   const allowed = /^https:\/\/www\.foerderdatenbank\.de\/FDB\/Content\/DE\/Foerderprogramm\//i.test(url);
   if (!allowed) {
     return res.status(400).json({ok:false,error:"Ungültige Programm-URL"});
@@ -40,7 +237,7 @@ export default async function handler(req, res) {
   try {
     const upstream = await fetch(url, {
       headers: {
-        "user-agent":"FoerderRadar-Prototype/0.3 (+https://github.com/xturn2u/foerder_tool)",
+        "user-agent":"FoerderRadar-Prototype/0.4 (+https://github.com/xturn2u/foerder_tool)",
         "accept":"text/html,application/xhtml+xml"
       },
       redirect:"follow"
@@ -61,9 +258,10 @@ export default async function handler(req, res) {
     const ansprechpunkt = extract(text, "Ansprechpunkt:", ["Weiterführende Links:", "Rechtsgrundlage"]);
     const rechtsgrundlage = extract(text, "Rechtsgrundlage", ["Drucken", "Service"]);
 
-    const dateMatches = [...rechtsgrundlage.matchAll(/\b\d{1,2}\.\d{1,2}\.\d{4}\b/g)].map(m => m[0]);
+    const dateMatches = [...text.matchAll(/\b\d{1,2}\.\d{1,2}\.\d{4}\b/g)].map(m => m[0]);
     const uniqueDates = [...new Set(dateMatches)].slice(0, 8);
-    const deadlineWarning = /Antragstellung .*nicht mehr möglich|musste .* bis zum|Portal .*geschlossen|Deadline .*geschlossen|nicht mehr berücksichtigt/i.test(text);
+    const deadlineWarning = /Antragstellung .*nicht mehr möglich|musste .* bis zum|Portal .*geschlossen|Deadline .*geschlossen|nicht mehr berücksichtigt|bereits ausgeschöpft/i.test(text);
+    const fundingEstimate = estimateFunding(text, investment, size, target);
 
     return res.status(200).json({
       ok:true,
@@ -77,8 +275,9 @@ export default async function handler(req, res) {
       rechtsgrundlage: rechtsgrundlage.slice(0, 2200),
       dates: uniqueDates,
       deadline_warning: deadlineWarning,
+      funding_estimate: fundingEstimate,
       source_url:url,
-      attribution:"Quelle: Förderdatenbank des Bundes. Maßgeblich sind die offiziellen Programmbedingungen."
+      attribution:"Quelle: Förderdatenbank des Bundes. Förderbetrag ist eine technische Schätzung auf Basis erkannter Förderquote/Höchstbeträge und keine Förderzusage."
     });
   } catch (err) {
     return res.status(500).json({ok:false,error:"Programmdetail konnte nicht geladen werden: " + (err?.message || "unbekannter Fehler")});
