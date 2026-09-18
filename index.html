@@ -45,7 +45,7 @@
     .links{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}a.btn{display:inline-block;text-decoration:none;background:#eef2f7;color:#1f2a3d;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px}
     .warning{background:var(--warnbg);border-color:#ffe09a;color:#755a00}.error{background:#fff0f0;border-color:#ffc9c9;color:#8b1d1d}
     .devCoupon{margin:18px 0 0;padding:13px 15px;border-radius:12px;background:#eef8ff;border:1px solid #cfe6ff;display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}.devCoupon strong{color:#1f5fbf}.couponCode{display:inline-block;padding:5px 8px;border-radius:7px;background:#fff;border:1px dashed #9bc4ef;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:900;letter-spacing:.4px;color:#174f91}.devCoupon button{padding:8px 11px;background:#e3eef9;color:#184e86}
-    .checkoutCard{display:none;margin:18px 0 0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 6px 22px rgba(31,46,80,.05)}.checkoutCard.show{display:block}.checkoutTop{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.checkoutTitle{font-size:20px;font-weight:900}.checkoutSub{margin-top:4px;color:#667085;font-size:13px;line-height:1.45}.checkoutPrice{text-align:right}.checkoutPrice .old{font-size:13px;color:#98a2b3;text-decoration:line-through}.checkoutPrice .now{font-size:27px;font-weight:950;color:#172033}.checkoutPrice .once{font-size:11px;color:#7c8798}.couponRow{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:16px}.couponRow input{margin:0}.couponStatus{margin-top:8px;font-size:12px;color:#667085}.couponStatus.ok{color:#157347}.couponStatus.bad{color:#b42318}.checkoutActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}.checkoutActions button{padding:11px 14px}.unlockState{margin-top:12px;padding:11px 13px;border-radius:10px;background:#edf8f1;border:1px solid #cfe7d8;color:#176b45;font-size:13px;font-weight:800}
+    .applicationHelp{display:none;margin-top:14px;padding:16px;background:#f8fafc;border:1px solid #e4eaf2;border-radius:12px}.applicationHelp.open{display:block}.assistHead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.assistTitle{font-size:16px;font-weight:900}.assistSub{margin-top:3px;color:#667085;font-size:12px;line-height:1.45}.assistPrice{text-align:right;white-space:nowrap}.assistPrice .old{font-size:12px;color:#98a2b3;text-decoration:line-through}.assistPrice .now{font-size:22px;font-weight:950}.assistList{display:grid;gap:7px;margin:13px 0;font-size:13px;color:#536175}.assistList div:before{content:"✓";font-weight:900;color:#157347;margin-right:7px}.couponRow{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:12px}.couponRow input{margin:0}.couponStatus{margin-top:8px;font-size:12px;color:#667085}.couponStatus.ok{color:#157347}.couponStatus.bad{color:#b42318}.assistActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:13px}.assistResult{display:grid;gap:12px}.assistSection{background:#fff;border:1px solid #e5eaf1;border-radius:11px;padding:12px 13px}.assistSection h4{margin:0 0 7px;font-size:13px}.assistSection p{margin:0;color:#5d6678;font-size:13px;line-height:1.5}.assistLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.assistLinks a{display:inline-block;text-decoration:none;background:#172033;color:#fff;padding:9px 11px;border-radius:9px;font-weight:800;font-size:12px}.assistLinks a.secondaryLink{background:#eef2f7;color:#263349}
     .warnings{display:grid;gap:8px;margin:12px 0}.warn{background:var(--warnbg);border:1px solid #ffe09a;color:#795e14;padding:10px 12px;border-radius:10px;font-size:12px}
     .inspect{border:0;background:#172033;color:#fff;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer}.detailPanel{display:none;margin-top:14px;padding:14px;background:#f8fafc;border:1px solid #e4eaf2;border-radius:12px}.detailPanel.open{display:block}.detailGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:13px;color:#596679}.detailGrid b{color:#273044}.detailFull{grid-column:1/-1}.deadline{margin-top:10px;padding:9px 10px;border-radius:9px;background:#fff2f2;border:1px solid #ffcaca;color:#8b1d1d;font-size:12px;font-weight:750}footer{margin-top:26px;color:#7a8496;font-size:12px;text-align:center;line-height:1.5}
     @media(max-width:760px){
@@ -187,8 +187,8 @@
     </section>
 
     <div id="devCouponBanner" class="devCoupon">
-      <div><strong>Entwicklungsphase:</strong> FörderCheck regulär 29 € einmalig. Mit <span id="devCouponCode" class="couponCode">wird geladen …</span> aktuell kostenlos.</div>
-      <button type="button" onclick="useDevelopmentCoupon()">Gutschein übernehmen</button>
+      <div><strong>Entwicklungsphase:</strong> Antragshilfe regulär 9,90 € einmalig. Mit <span id="devCouponCode" class="couponCode">wird geladen …</span> aktuell kostenlos.</div>
+      <button id="rememberCouponBtn" type="button" onclick="useDevelopmentCoupon()">Gutschein merken</button>
     </div>
 
     <div id="status"></div>
@@ -207,38 +207,18 @@
     </div>
     <div id="results" class="results"></div>
 
-    <section id="checkoutCard" class="checkoutCard">
-      <div class="checkoutTop">
-        <div>
-          <div class="checkoutTitle">Persönlicher FörderCheck</div>
-          <div class="checkoutSub">Einmalige Detailprüfung deines Vorhabens. Kein Abo. Während der Entwicklung kann der angezeigte Gutschein verwendet werden.</div>
-        </div>
-        <div class="checkoutPrice">
-          <div id="checkoutOldPrice" class="old"></div>
-          <div id="checkoutPriceNow" class="now">29 €</div>
-          <div class="once">einmalig</div>
-        </div>
-      </div>
-      <div class="couponRow">
-        <input id="couponInput" autocomplete="off" placeholder="Gutscheincode eingeben">
-        <button type="button" class="secondary" onclick="applyCoupon()">Gutschein anwenden</button>
-      </div>
-      <div id="couponStatus" class="couponStatus">Regulärer Preis: 29 € einmalig.</div>
-      <div class="checkoutActions">
-        <button id="startCheckBtn" type="button" onclick="startFundingCheck()">FörderCheck für 29 € starten</button>
-        <span class="small">Im Entwicklungsmodus erfolgt keine echte Zahlung.</span>
-      </div>
-      <div id="unlockState"></div>
-    </section>
+
 
     <footer>FörderRadar Deutschland · Entwicklungsstand · keine Rechts-, Steuer- oder Förderberatung · maßgeblich sind ausschließlich die offiziellen Programmbedingungen.</footer>
   </div>
 
 <script>
 const PROFILE_KEY='foerderradar-profile-v02';
-const CHECK_ACCESS_KEY='foerderradar-check-access-v01';
-let checkoutQuote={regular_price_cents:2900,discount_cents:0,total_cents:2900,currency:'EUR',payment_required:true};
+const ASSIST_ACCESS_KEY='foerderradar-assist-access-v01';
+let checkoutConfig={regular_price_cents:990,discount_cents:0,total_cents:990,currency:'EUR',payment_required:true};
 let featuredCoupon='';
+let preferredCoupon='';
+const assistQuotes={};
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const TARGET_UI={
   'Unternehmen':{
@@ -367,7 +347,6 @@ function resetProfile(){
   document.getElementById('status').textContent='';
   document.getElementById('summary').style.display='none';
   document.getElementById('resultsToolbar').classList.remove('show');
-  document.getElementById('checkoutCard').classList.remove('show');
 }
 function fitClass(v){return v>=80?'':v>=65?'medium':'low'}
 function levelClass(level){return level?.type||'unknown'}
@@ -446,8 +425,8 @@ function renderPrograms(){
         </div>
         ${program.reasons?.length?'<div class="reasons">'+program.reasons.map(r=>'<span class="reason">'+esc(r)+'</span>').join('')+'</div>':''}
         <div id="estimate-${i}">${estimateBlock}</div>
-        <div class="links"><button class="inspect" onclick="inspectProgramByUrl('${encodeURIComponent(program.url)}',this)">Programm prüfen</button><a class="btn" href="${esc(program.url)}" target="_blank" rel="noopener">Offizielle Quelle ↗</a></div>
-        <div class="detailPanel"></div>
+        <div class="links"><a class="btn" href="${esc(program.url)}" target="_blank" rel="noopener">Offizielle Informationen ↗</a><button class="inspect" onclick="openApplicationHelp('${encodeURIComponent(program.url)}',this)">Antragshilfe · 9,90 €</button></div>
+        <div class="applicationHelp"></div>
       </article>`;
   }).join('');
 }
@@ -488,7 +467,6 @@ async function searchFunding(){
     window.lastProfile=p;
     document.getElementById('resultsToolbarLabel').textContent=usablePrograms.length+' Ergebnisse';
     document.getElementById('resultsToolbar').classList.add('show');
-    document.getElementById('checkoutCard').classList.add('show');
     renderPrograms();
     loadTopDetails(usablePrograms,p);
   }catch(e){
@@ -518,122 +496,150 @@ async function loadTopDetails(programs,p){
   await Promise.all([worker(),worker(),worker()]);
   renderPrograms();
 }
-async function inspectProgramByUrl(encodedUrl,btn){
+function euroCents(cents){
+  return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format((Number(cents)||0)/100);
+}
+function accessMap(){
+  try{return JSON.parse(localStorage.getItem(ASSIST_ACCESS_KEY)||'{}')||{}}catch{return {}}
+}
+function hasAssistAccess(url){return Boolean(accessMap()[url]?.granted)}
+function grantAssistAccess(url,code){
+  const map=accessMap();
+  map[url]={granted:true,code,granted_at:new Date().toISOString()};
+  localStorage.setItem(ASSIST_ACCESS_KEY,JSON.stringify(map));
+}
+function assistCheckoutHtml(program){
+  const quote=assistQuotes[program.url]||checkoutConfig;
+  const discount=(quote.discount_cents||0)>0;
+  const couponValue=preferredCoupon||'';
+  return '<div class="assistHead"><div><div class="assistTitle">Antragshilfe für '+esc(program.title)+'</div><div class="assistSub">Konkrete Vorbereitung für dieses Förderprogramm. Kein Abo.</div></div><div class="assistPrice">'+
+    (discount?'<div class="old">'+euroCents(quote.regular_price_cents)+'</div>':'')+
+    '<div class="now">'+euroCents(quote.total_cents)+'</div><div class="small">einmalig</div></div></div>'+
+    '<div class="assistList"><div>Förderhöhe und Voraussetzungen einordnen</div><div>Fehlende Angaben erkennen</div><div>Fristen und Antragsweg zusammenfassen</div></div>'+
+    '<div class="couponRow"><input data-role="coupon" autocomplete="off" placeholder="Gutscheincode" value="'+esc(couponValue)+'"><button type="button" class="secondary" data-role="applyCoupon">Gutschein anwenden</button></div>'+
+    '<div class="couponStatus '+(quote.coupon?.valid?'ok':'')+'" data-role="couponStatus">'+
+      (quote.coupon?.valid?'Gutschein '+esc(quote.coupon.code)+' angewendet · Endpreis '+euroCents(quote.total_cents):'Regulärer Preis: '+euroCents(quote.regular_price_cents)+' einmalig.')+
+    '</div>'+
+    '<div class="assistActions"><button type="button" data-role="startAssist">'+(quote.total_cents===0?'Antragshilfe kostenlos starten':'Antragshilfe für '+euroCents(quote.total_cents)+' starten')+'</button><span class="small">Im Entwicklungsmodus erfolgt keine echte Zahlung.</span></div>';
+}
+function assistResultHtml(program){
+  const d=program._detail||{};
+  const e=d.funding_estimate||{};
+  const missing=(e.missing_inputs||[]).map(x=>x.label).filter(Boolean);
+  const amount=e.available
+    ? '<p><strong>Möglicher Förderbetrag:</strong> '+money(e.amount)+'<br><span class="small">'+money(e.eligible_base)+' × '+esc(e.rate)+' %'+(e.max_grant?' · Höchstbetrag berücksichtigt':'')+'</span></p>'
+    : '<p>'+esc(e.reason||'Ein belastbarer Förderbetrag konnte noch nicht ermittelt werden.')+(missing.length?'<br><strong>Noch benötigt:</strong> '+missing.map(esc).join(', '):'')+'</p>';
+  const dates=(d.dates||[]).length?d.dates.map(esc).join(', '):'Keine eindeutigen Datumsangaben erkannt.';
+  const deadline=d.deadline_warning?'Im offiziellen Text wurde ein Hinweis auf eine abgelaufene oder geschlossene Frist erkannt.':'Keine eindeutig geschlossene Frist wurde automatisch erkannt. Maßgeblich bleibt die offizielle Programminformation.';
+  const links=(d.application_links||[]);
+  const applicationLinks=links.length
+    ? '<div class="assistLinks">'+links.map(x=>'<a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+esc(x.label||'Zum Antrag / Förderportal')+' ↗</a>').join('')+'</div>'
+    : '<div class="assistLinks"><a href="'+esc(program.url)+'" target="_blank" rel="noopener">Zur offiziellen Programmseite ↗</a></div>';
+  const contact=d.ansprechpunkt?'<p><strong>Ansprechpunkt:</strong> '+esc(d.ansprechpunkt)+'</p>':'<p>Kein eindeutiger Ansprechpunkt automatisch erkannt.</p>';
+  return '<div class="assistResult">'+
+    '<div class="assistSection"><h4>1 · Förderhöhe</h4>'+amount+'</div>'+
+    '<div class="assistSection"><h4>2 · Voraussetzungen</h4><p><strong>Förderberechtigt:</strong> '+esc(d.foerderberechtigte||program.who||'Bitte offizielle Programmbedingungen prüfen.')+'<br><strong>Fördergebiet:</strong> '+esc(d.foerdergebiet||program.area||'nicht eindeutig erkannt')+'</p></div>'+
+    '<div class="assistSection"><h4>3 · Was noch fehlt</h4><p>'+(missing.length?missing.map(esc).join(', '):'Aus den erkannten Programmdaten wurden keine zusätzlichen Eingaben abgeleitet. Weitere Nachweise können laut offizieller Richtlinie trotzdem erforderlich sein.')+'</p></div>'+
+    '<div class="assistSection"><h4>4 · Fristen</h4><p><strong>Erkannte Datumsangaben:</strong> '+dates+'<br>'+esc(deadline)+'</p></div>'+
+    '<div class="assistSection"><h4>5 · Antrag</h4>'+contact+applicationLinks+'</div>'+
+  '</div>';
+}
+function wireAssistPanel(program,panel){
+  const applyBtn=panel.querySelector('[data-role="applyCoupon"]');
+  const startBtn=panel.querySelector('[data-role="startAssist"]');
+  if(applyBtn)applyBtn.onclick=()=>applyAssistCoupon(program,panel);
+  if(startBtn)startBtn.onclick=()=>startApplicationHelp(program,panel);
+}
+async function openApplicationHelp(encodedUrl,btn){
   const url=decodeURIComponent(encodedUrl);
   const program=(window.lastPrograms||[]).find(x=>x.url===url);
   if(!program)return;
   const card=btn.closest('.card');
-  const box=card.querySelector('.detailPanel');
-  if(box.classList.contains('open')){box.classList.remove('open');btn.textContent='Programm prüfen';return}
-  btn.disabled=true;btn.textContent='Prüfe …';box.classList.add('open');box.innerHTML='<span class="small">Offizielle Programmdaten werden geladen …</span>';
-  try{
-    let d=program._detail;
-    if(!d){
+  const panel=card.querySelector('.applicationHelp');
+  if(panel.classList.contains('open')){panel.classList.remove('open');return}
+  panel.classList.add('open');
+  if(!program._detail){
+    panel.innerHTML='<span class="small">Programmdaten werden vorbereitet …</span>';
+    try{
       const pr=profile();
       const r=await fetch('/api/program?'+new URLSearchParams({url:program.url,investment:pr.investment||'',size:pr.size||'',target:pr.target||'',locality:pr.locality||'',state:pr.state||''}));
-      d=await r.json(); if(!r.ok||!d.ok)throw new Error(d.error||'Detailprüfung fehlgeschlagen');
+      const d=await r.json();
+      if(!r.ok||!d.ok)throw new Error(d.error||'Programmdetails nicht verfügbar');
       program._detail=d;
+    }catch(e){
+      panel.innerHTML='<div class="error">Antragshilfe konnte nicht vorbereitet werden: '+esc(e.message)+'</div>';
+      return;
     }
-    const parts=[
-      ['Förder-Ebene',levelLabel(d.funding_level)],['Förderart',d.foerderart],['Fördergebiet',d.foerdergebiet],
-      ['Förderberechtigte',d.foerderberechtigte],['Fördergeber',d.foerdergeber],
-      ['Förderbereich',d.foerderbereich],['Ansprechpunkt',d.ansprechpunkt]
-    ].filter(x=>x[1]);
-    box.innerHTML=estimateHtml(d.funding_estimate)+'<div class="detailGrid">'+parts.map(x=>'<div><b>'+esc(x[0])+':</b> '+esc(x[1])+'</div>').join('')+
-      (d.dates?.length?'<div class="detailFull"><b>Erkannte Datumsangaben:</b> '+d.dates.map(esc).join(', ')+'</div>':'')+
-      (d.rechtsgrundlage?'<div class="detailFull"><b>Rechtsgrundlage / Fristtext:</b><br>'+esc(d.rechtsgrundlage)+'</div>':'')+
-      '</div>'+(d.deadline_warning?'<div class="deadline">⚠ Im offiziellen Text wurde ein Hinweis auf eine abgelaufene oder geschlossene Frist erkannt. Bitte die Programmbedingungen prüfen.</div>':'');
-    btn.textContent='Prüfung schließen';
-  }catch(e){box.innerHTML='<div class="error">Detailprüfung fehlgeschlagen: '+esc(e.message)+'</div>';btn.textContent='Erneut prüfen'}
-  finally{btn.disabled=false}
-}
-function euroCents(cents){
-  return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format((Number(cents)||0)/100);
-}
-function renderCheckoutQuote(){
-  const old=document.getElementById('checkoutOldPrice');
-  const now=document.getElementById('checkoutPriceNow');
-  const status=document.getElementById('couponStatus');
-  const btn=document.getElementById('startCheckBtn');
-  const hasDiscount=(checkoutQuote.discount_cents||0)>0;
-  old.textContent=hasDiscount?euroCents(checkoutQuote.regular_price_cents):'';
-  now.textContent=euroCents(checkoutQuote.total_cents);
-  if(checkoutQuote.coupon?.valid){
-    status.className='couponStatus ok';
-    status.textContent='Gutschein '+checkoutQuote.coupon.code+' angewendet: −'+euroCents(checkoutQuote.discount_cents)+'. Endpreis '+euroCents(checkoutQuote.total_cents)+'.';
-  }else{
-    status.className='couponStatus';
-    status.textContent='Regulärer Preis: '+euroCents(checkoutQuote.regular_price_cents)+' einmalig.';
   }
-  btn.textContent=checkoutQuote.total_cents===0?'FörderCheck kostenlos starten':'FörderCheck für '+euroCents(checkoutQuote.total_cents)+' starten';
+  if(hasAssistAccess(program.url)){
+    panel.innerHTML=assistResultHtml(program);
+    btn.textContent='Antragshilfe geöffnet';
+    return;
+  }
+  panel.innerHTML=assistCheckoutHtml(program);
+  wireAssistPanel(program,panel);
+  if(preferredCoupon)applyAssistCoupon(program,panel);
+}
+async function applyAssistCoupon(program,panel){
+  const input=panel.querySelector('[data-role="coupon"]');
+  const status=panel.querySelector('[data-role="couponStatus"]');
+  const code=input?.value.trim()||'';
+  if(status){status.className='couponStatus';status.textContent='Gutschein wird geprüft …'}
+  try{
+    const r=await fetch('/api/checkout?'+new URLSearchParams({code,program_url:program.url}));
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error('Gutscheinprüfung fehlgeschlagen');
+    assistQuotes[program.url]=d;
+    panel.innerHTML=assistCheckoutHtml(program);
+    wireAssistPanel(program,panel);
+    const nextStatus=panel.querySelector('[data-role="couponStatus"]');
+    if(code&&!d.coupon?.valid&&nextStatus){
+      nextStatus.className='couponStatus bad';
+      nextStatus.textContent='Gutscheincode ist ungültig. Regulärer Preis: '+euroCents(d.regular_price_cents)+'.';
+    }
+  }catch(e){
+    if(status){status.className='couponStatus bad';status.textContent='Gutschein konnte nicht geprüft werden.'}
+  }
+}
+async function startApplicationHelp(program,panel){
+  const quote=assistQuotes[program.url]||checkoutConfig;
+  const input=panel.querySelector('[data-role="coupon"]');
+  const code=input?.value.trim()||'';
+  if((quote.total_cents||0)>0){
+    const status=panel.querySelector('[data-role="couponStatus"]');
+    if(status){status.className='couponStatus bad';status.textContent='Die echte Zahlungsabwicklung ist noch nicht aktiviert. Verwende während der Entwicklung den angezeigten Gutschein.'}
+    return;
+  }
+  try{
+    const r=await fetch('/api/checkout?'+new URLSearchParams({code,redeem:'1',program_url:program.url}));
+    const d=await r.json();
+    if(!r.ok||d.status!=='granted')throw new Error('Freischaltung fehlgeschlagen');
+    grantAssistAccess(program.url,d.coupon?.code||code);
+    panel.innerHTML=assistResultHtml(program);
+    const card=panel.closest('.card');
+    const btn=card?.querySelector('.inspect');
+    if(btn)btn.textContent='Antragshilfe geöffnet';
+  }catch(e){
+    panel.innerHTML='<div class="error">Antragshilfe konnte nicht freigeschaltet werden.</div>';
+  }
 }
 async function loadCheckoutConfig(){
   try{
     const r=await fetch('/api/checkout');
     const d=await r.json();
     if(!r.ok||!d.ok)throw new Error('Checkout nicht verfügbar');
-    checkoutQuote=d;
+    checkoutConfig=d;
     featuredCoupon=d.featured_coupon?.code||'';
     document.getElementById('devCouponCode').textContent=featuredCoupon||'nicht verfügbar';
-    renderCheckoutQuote();
-    const saved=JSON.parse(localStorage.getItem(CHECK_ACCESS_KEY)||'null');
-    if(saved?.granted)showUnlockedState(saved);
   }catch(e){
     document.getElementById('devCouponBanner').style.display='none';
   }
 }
 function useDevelopmentCoupon(){
   if(!featuredCoupon)return;
-  document.getElementById('couponInput').value=featuredCoupon;
-  document.getElementById('checkoutCard').classList.add('show');
-  applyCoupon();
-  document.getElementById('checkoutCard').scrollIntoView({behavior:'smooth',block:'center'});
-}
-async function applyCoupon(){
-  const code=document.getElementById('couponInput').value.trim();
-  const status=document.getElementById('couponStatus');
-  status.className='couponStatus';
-  status.textContent='Gutschein wird geprüft …';
-  try{
-    const r=await fetch('/api/checkout?'+new URLSearchParams({code}));
-    const d=await r.json();
-    if(!r.ok||!d.ok)throw new Error('Gutscheinprüfung fehlgeschlagen');
-    checkoutQuote=d;
-    renderCheckoutQuote();
-    if(code&&!d.coupon?.valid){
-      status.className='couponStatus bad';
-      status.textContent='Gutscheincode ist ungültig. Regulärer Preis: '+euroCents(d.regular_price_cents)+'.';
-    }
-  }catch(e){
-    status.className='couponStatus bad';
-    status.textContent='Gutschein konnte nicht geprüft werden.';
-  }
-}
-function showUnlockedState(saved){
-  const box=document.getElementById('unlockState');
-  box.className='unlockState';
-  box.innerHTML='✓ FörderCheck im Entwicklungsmodus kostenlos freigeschaltet.';
-  document.getElementById('startCheckBtn').textContent='FörderCheck freigeschaltet';
-}
-async function startFundingCheck(){
-  const code=document.getElementById('couponInput').value.trim();
-  const box=document.getElementById('unlockState');
-  if(checkoutQuote.total_cents>0){
-    box.className='couponStatus bad';
-    box.textContent='Die echte Zahlungsabwicklung ist noch nicht aktiviert. Verwende während der Entwicklung den angezeigten Gutschein.';
-    return;
-  }
-  try{
-    const r=await fetch('/api/checkout?'+new URLSearchParams({code,redeem:'1'}));
-    const d=await r.json();
-    if(!r.ok||d.status!=='granted')throw new Error('Freischaltung fehlgeschlagen');
-    const access={granted:true,code:d.coupon?.code||code,granted_at:new Date().toISOString()};
-    localStorage.setItem(CHECK_ACCESS_KEY,JSON.stringify(access));
-    showUnlockedState(access);
-  }catch(e){
-    box.className='couponStatus bad';
-    box.textContent='FörderCheck konnte nicht freigeschaltet werden.';
-  }
+  preferredCoupon=featuredCoupon;
+  const btn=document.getElementById('rememberCouponBtn');
+  if(btn){btn.textContent='Gutschein gemerkt ✓';btn.disabled=true}
 }
 document.getElementById('target').addEventListener('change',()=>{
   applyTargetLogic();
