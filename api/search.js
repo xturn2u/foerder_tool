@@ -168,18 +168,14 @@ function hasMeaningfulValue(value = "") {
 }
 
 function isUsableProgram(program) {
-  if (!program || isGenericTitle(program.title) || !isSpecificProgramUrl(program.url)) return false;
-
-  const signals = [
-    program.who,
-    program.what,
-    program.giver,
-    program.area
-  ].filter(hasMeaningfulValue).length;
-
-  // Zwei unabhängige Inhaltsfelder verhindern Navigations-/Überschrifts-Treffer,
-  // ohne valide Programme wegen eines einzelnen fehlenden Such-Snippets zu verlieren.
-  return signals >= 2;
+  // In der Suchergebnisliste liefert die Förderdatenbank nicht zuverlässig alle
+  // Metadaten. Deshalb hier nur eindeutig falsche Navigations-/Sammel-Treffer
+  // verwerfen. Inhaltsdaten werden anschließend über die Detailseite verifiziert.
+  return Boolean(
+    program &&
+    !isGenericTitle(program.title) &&
+    isSpecificProgramUrl(program.url)
+  );
 }
 
 function tokens(q = "") {
