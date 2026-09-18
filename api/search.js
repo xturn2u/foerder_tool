@@ -33,6 +33,22 @@ const FUNDING_LEVEL_MAP = {
   "land":"land"
 };
 
+const COMPANY_SIZE_MAP = {
+  "1–9 mitarbeitende":"kleinstunternehmen",
+  "10–49 mitarbeitende":"kleines_unternehmen",
+  "50–249 mitarbeitende":"mittleres_unternehmen",
+  "250+ mitarbeitende":"grosses_unternehmen"
+};
+
+const TOPIC_AREA_MAP = {
+  "digitalisierung":"digitalisierung",
+  "energieeffizienz":"energieeffizienz_erneuerbare_energien",
+  "erneuerbare energien":"energieeffizienz_erneuerbare_energien",
+  "forschung innovation":"forschung_innovation_themenoffen",
+  "weiterbildung":"aus_weiterbildung",
+  "gründung":"existenzgruendung_festigung"
+};
+
 const TARGET_MAP = {
   "unternehmen": "unternehmen",
   "privatperson": "privatperson",
@@ -210,7 +226,7 @@ function parsePrograms(html, searchTerm) {
   return rows;
 }
 
-function buildUrl({term, state, target, fundingType, fundingLevel}) {
+function buildUrl({term, state, target, fundingType, fundingLevel, companySize, fundingArea}) {
   const params = new URLSearchParams();
   params.set("filterCategories", "FundingProgram");
   params.set("submit", "Suchen");
@@ -222,16 +238,19 @@ function buildUrl({term, state, target, fundingType, fundingLevel}) {
   const targetKey = TARGET_MAP[norm(target)];
   const typeKey = FUNDING_TYPE_MAP[norm(fundingType)];
   const levelKey = FUNDING_LEVEL_MAP[norm(fundingLevel)];
+  const sizeKey = COMPANY_SIZE_MAP[norm(companySize)];
   if (stateKey) params.set("cl2Processes_Foerdergebiet", stateKey);
   if (targetKey) params.set("cl2Processes_Foerderberechtigte", targetKey);
   if (typeKey) params.set("cl2Processes_Foerderart", typeKey);
   if (levelKey) params.set("cl2Processes_Foerdergeber", levelKey);
+  if (sizeKey) params.set("cl2Processes_Unternehmensgroesse", sizeKey);
+  if (fundingArea) params.set("cl2Processes_Foerderbereich", fundingArea);
 
   return "https://www.foerderdatenbank.de/SiteGlobals/FDB/Forms/Suche/Foederprogrammsuche_Formular.html?" + params.toString();
 }
 
-async function fetchSearch(term, state, target, fundingType, fundingLevel) {
-  const sourceUrl = buildUrl({term, state, target, fundingType, fundingLevel});
+async function fetchSearch(term, state, target, fundingType, fundingLevel, companySize, fundingArea) {
+  const sourceUrl = buildUrl({term, state, target, fundingType, fundingLevel, companySize, fundingArea});
   const upstream = await fetch(sourceUrl, {
     headers: {
       "user-agent": "FoerderRadar-Prototype/0.2 (+https://github.com/xturn2u/foerder_tool)",
@@ -281,7 +300,14 @@ export default async function handler(req, res) {
 
   try {
     const officialLevel = ["Bund","Land","EU"].includes(fundingLevel) ? fundingLevel : "";
-    const searches = await Promise.all(terms.map(term => fetchSearch(term, state, target, fundingType, officialLevel)));
+    const searches = [];
+    if (q) searches.push(await fetchSearch(q, state, target, fundingType, officialLevel, size, ""));
+    for (const topic of topics) {
+      const area = TOPIC_AREA_MAP[norm(topic)] || "";
+      searches.push(await fetchSearch(area ? "" : topic, state, target, fundingType, officialLevel, size, area));
+    }
+    if (locality) searches.push(await fetchSearch(locality, state, target, fundingType, officialLevel, size, ""));
+    if (!searches.length) searches.push(await fetchSearch("Förderung", state, target, fundingType, officialLevel, size, ""));
     const merged = new Map();
 
     for (const search of searches) {
@@ -315,12 +341,12 @@ export default async function handler(req, res) {
     programs = programs.sort((a,b) => b.fit - a.fit).slice(0, 24);
 
     const warnings = [];
-    if (size) warnings.push("Unternehmensgröße wird im MVP bereits gespeichert, aber noch nicht als harter Eligibility-Filter ausgewertet.");
+    if (size) warnings.push("Unternehmensgröße wird jetzt als offizieller Filter der Förderdatenbank verwendet. Die endgültige Förderfähigkeit kann trotzdem zusätzliche KMU-/Beihilfekriterien enthalten.");
     if (investment) warnings.push("Investitionssumme wird im Profil berücksichtigt, aber Förderhöhen werden erst mit dem XML-/Detaildaten-Import belastbar berechnet.");
     if (start) warnings.push("Projektstart ist erfasst; konkrete Antragsfristen und Vorhabensbeginn-Regeln werden in der nächsten Ausbaustufe geprüft.");
     if (fundingLevel === "Kommunal") {
       warnings.push(locality
-        ? "Kommunale Suche ist Beta: Die Förderdatenbank besitzt keinen eigenen Fördergeber-Filter für Kommunen. Der Ort wird deshalb zusätzlich als Suchbegriff verwendet."
+        ? "Kommunale Suche ist nur ein Zusatztest: Die Förderdatenbank des Bundes deckt primär Programme von Bund, Ländern und EU ab und besitzt keinen eigenen kommunalen Fördergeber-Filter. Kommunale Förderprogramme können deshalb fehlen."
         : "Für kommunale Förderungen bitte zusätzlich Ort/Kommune angeben. Die kommunale Suche ist derzeit Beta."
       );
     }
