@@ -354,8 +354,24 @@ function estimateHtml(e){
   const notes=(e.notes||[]).length?'<div class="estimateCalc">'+e.notes.map(esc).join(' ')+'</div>':'';
   return '<div class="estimateBox"><div class="estimateLabel">Möglicher Förderbetrag bis zu</div><div class="estimateAmount">'+money(e.amount)+'</div><div class="estimateCalc">'+calc+confidence+'</div>'+notes+'</div>';
 }
+function hasValue(v){
+  const x=String(v||'').trim();
+  return x.length>=3 && !/^(?:-|–|—|n\/?a|keine angabe|nicht angegeben|programm gelistet)$/i.test(x);
+}
+function isRenderableProgram(program){
+  if(!program||!hasValue(program.title)||!hasValue(program.url))return false;
+  const generic=String(program.title).toLowerCase().replace(/[^a-z0-9äöüß ]/gi,' ').replace(/\s+/g,' ').trim();
+  if(['förderprogramm','förderprogramme','foerderprogramm','foerderprogramme','förderung','foerderung','suchergebnisse','programmsuche'].includes(generic))return false;
+  if(!/^https:\/\/www\.foerderdatenbank\.de\/FDB\/Content\/DE\/Foerderprogramm\/(?:Bund|Land|EU)\/.+\.html/i.test(program.url))return false;
+  const detail=program._detail||{};
+  const signals=[
+    program.who,program.what,program.giver,program.area,
+    detail.foerderart,detail.foerdergebiet,detail.foerderberechtigte,detail.foerdergeber,detail.foerderbereich
+  ].filter(hasValue).length;
+  return signals>=2;
+}
 function sortedPrograms(programs,mode){
-  const copy=[...programs];
+  const copy=[...programs].filter(isRenderableProgram);
   if(mode==='amount'){
     return copy.sort((a,b)=>(b._detail?.funding_estimate?.amount||-1)-(a._detail?.funding_estimate?.amount||-1)||b.fit-a.fit);
   }
@@ -406,32 +422,33 @@ async function searchFunding(){
     const data=await r.json();
     if(!r.ok||!data.ok)throw new Error(data.error||'Suche fehlgeschlagen');
 
-    const active=data.programs.filter(x=>!/nicht mehr möglich/i.test(x.status)).length;
-    const strong=data.programs.filter(x=>x.fit>=80).length;
-    document.getElementById('statPrograms').textContent=data.programs.length;
+    const usablePrograms=data.programs.filter(isRenderableProgram);
+    const active=usablePrograms.filter(x=>!/nicht mehr möglich/i.test(x.status)).length;
+    const strong=usablePrograms.filter(x=>x.fit>=80).length;
+    document.getElementById('statPrograms').textContent=usablePrograms.length;
     document.getElementById('statStrong').textContent=strong;
     document.getElementById('statTerms').textContent=data.terms.length;
     document.getElementById('statActive').textContent=active;
     document.getElementById('summary').style.display='grid';
 
-    status.textContent=data.programs.length
-      ? data.programs.length+' priorisierte Programme aus '+data.terms.length+' Suchpfaden'
-      : 'Keine Programme erkannt';
+    status.textContent=usablePrograms.length
+      ? usablePrograms.length+' priorisierte Programme aus '+data.terms.length+' Suchpfaden'
+      : 'Keine verwertbaren Programme erkannt';
 
     warnings.innerHTML=(data.warnings||[]).map(w=>'<div class="warn">'+esc(w)+'</div>').join('');
 
-    if(!data.programs.length){
+    if(!usablePrograms.length){
       document.getElementById('resultsToolbar').classList.remove('show');
       results.innerHTML='<div class="card warning">Für dieses Profil wurden im MVP keine Treffer erkannt. Wähle weniger Themen oder formuliere das Vorhaben allgemeiner.</div>';
       return;
     }
 
-    window.lastPrograms=data.programs;
+    window.lastPrograms=usablePrograms;
     window.lastProfile=p;
-    document.getElementById('resultsToolbarLabel').textContent=data.programs.length+' Ergebnisse';
+    document.getElementById('resultsToolbarLabel').textContent=usablePrograms.length+' Ergebnisse';
     document.getElementById('resultsToolbar').classList.add('show');
     renderPrograms();
-    loadTopDetails(data.programs,p);
+    loadTopDetails(usablePrograms,p);
   }catch(e){
     document.getElementById('resultsToolbar').classList.remove('show');
     status.textContent='';
