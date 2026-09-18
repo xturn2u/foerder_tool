@@ -18,6 +18,21 @@ const STATE_MAP = {
   "thüringen": "thueringen"
 };
 
+const FUNDING_TYPE_MAP = {
+  "zuschuss":"zuschuss",
+  "darlehen":"darlehen",
+  "bürgschaft":"buergschaft",
+  "beteiligung":"beteiligung",
+  "garantie":"garantie",
+  "sonstige":"sonstige"
+};
+
+const FUNDING_LEVEL_MAP = {
+  "bund":"bund",
+  "eu":"eu",
+  "land":"land"
+};
+
 const TARGET_MAP = {
   "unternehmen": "unternehmen",
   "privatperson": "privatperson",
@@ -195,7 +210,7 @@ function parsePrograms(html, searchTerm) {
   return rows;
 }
 
-function buildUrl({term, state, target}) {
+function buildUrl({term, state, target, fundingType, fundingLevel}) {
   const params = new URLSearchParams();
   params.set("filterCategories", "FundingProgram");
   params.set("submit", "Suchen");
@@ -205,14 +220,18 @@ function buildUrl({term, state, target}) {
 
   const stateKey = STATE_MAP[norm(state)];
   const targetKey = TARGET_MAP[norm(target)];
+  const typeKey = FUNDING_TYPE_MAP[norm(fundingType)];
+  const levelKey = FUNDING_LEVEL_MAP[norm(fundingLevel)];
   if (stateKey) params.set("cl2Processes_Foerdergebiet", stateKey);
   if (targetKey) params.set("cl2Processes_Foerderberechtigte", targetKey);
+  if (typeKey) params.set("cl2Processes_Foerderart", typeKey);
+  if (levelKey) params.set("cl2Processes_Foerdergeber", levelKey);
 
   return "https://www.foerderdatenbank.de/SiteGlobals/FDB/Forms/Suche/Foederprogrammsuche_Formular.html?" + params.toString();
 }
 
-async function fetchSearch(term, state, target) {
-  const sourceUrl = buildUrl({term, state, target});
+async function fetchSearch(term, state, target, fundingType, fundingLevel) {
+  const sourceUrl = buildUrl({term, state, target, fundingType, fundingLevel});
   const upstream = await fetch(sourceUrl, {
     headers: {
       "user-agent": "FoerderRadar-Prototype/0.2 (+https://github.com/xturn2u/foerder_tool)",
@@ -243,6 +262,9 @@ export default async function handler(req, res) {
   const size = String(req.query.size || "").trim().slice(0, 80);
   const investment = Number(req.query.investment || 0) || 0;
   const start = String(req.query.start || "").trim().slice(0, 30);
+  const locality = String(req.query.locality || "").trim().slice(0, 80);
+  const fundingType = String(req.query.fundingType || "").trim().slice(0, 40);
+  const fundingLevel = String(req.query.fundingLevel || "").trim().slice(0, 30);
 
   const topics = String(req.query.topics || "")
     .split(",")
@@ -250,13 +272,16 @@ export default async function handler(req, res) {
     .filter(Boolean)
     .slice(0, 4);
 
-  const terms = [...new Set([q, ...topics].filter(Boolean))].slice(0, 5);
+  const baseTerms = [...new Set([q, ...topics].filter(Boolean))].slice(0, 5);
+  const terms = [...baseTerms];
+  if (locality) terms.push(locality);
   if (!terms.length) terms.push("Förderung");
 
-  const profile = { q, state, target, size, investment, start, topics };
+  const profile = { q, state, target, size, investment, start, locality, fundingType, fundingLevel, topics };
 
   try {
-    const searches = await Promise.all(terms.map(term => fetchSearch(term, state, target)));
+    const officialLevel = ["Bund","Land","EU"].includes(fundingLevel) ? fundingLevel : "";
+    const searches = await Promise.all(terms.map(term => fetchSearch(term, state, target, fundingType, officialLevel)));
     const merged = new Map();
 
     for (const search of searches) {
@@ -270,15 +295,35 @@ export default async function handler(req, res) {
       }
     }
 
-    const programs = [...merged.values()].map(program => {
+    let programs = [...merged.values()].map(program => {
       const match = scoreProgram(program, profile);
-      return { ...program, fit: match.score, reasons: match.reasons, matchedTopics: match.matchedTopics };
-    }).sort((a,b) => b.fit - a.fit).slice(0, 24);
+      const reasons = [...match.reasons];
+      if (fundingType) reasons.push("Förderart gefiltert: " + fundingType);
+      if (fundingLevel && fundingLevel !== "Kommunal") reasons.push("Förder-Ebene gefiltert: " + fundingLevel);
+      if (locality) reasons.push("Ort/Kommune im Suchprofil: " + locality);
+      return { ...program, fit: match.score, reasons, matchedTopics: match.matchedTopics };
+    });
+
+    if (fundingLevel === "Kommunal") {
+      const placeNeedle = norm(locality);
+      programs = programs.filter(p =>
+        p.funding_level?.type === "municipal" ||
+        (placeNeedle && norm([p.title,p.giver,p.area,p.who,p.what].join(" ")).includes(placeNeedle))
+      );
+    }
+
+    programs = programs.sort((a,b) => b.fit - a.fit).slice(0, 24);
 
     const warnings = [];
     if (size) warnings.push("Unternehmensgröße wird im MVP bereits gespeichert, aber noch nicht als harter Eligibility-Filter ausgewertet.");
     if (investment) warnings.push("Investitionssumme wird im Profil berücksichtigt, aber Förderhöhen werden erst mit dem XML-/Detaildaten-Import belastbar berechnet.");
     if (start) warnings.push("Projektstart ist erfasst; konkrete Antragsfristen und Vorhabensbeginn-Regeln werden in der nächsten Ausbaustufe geprüft.");
+    if (fundingLevel === "Kommunal") {
+      warnings.push(locality
+        ? "Kommunale Suche ist Beta: Die Förderdatenbank besitzt keinen eigenen Fördergeber-Filter für Kommunen. Der Ort wird deshalb zusätzlich als Suchbegriff verwendet."
+        : "Für kommunale Förderungen bitte zusätzlich Ort/Kommune angeben. Die kommunale Suche ist derzeit Beta."
+      );
+    }
 
     return res.status(200).json({
       ok: true,
