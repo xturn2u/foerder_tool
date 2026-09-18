@@ -229,11 +229,65 @@ function extractMoneyRules(text, size, target) {
   return rules.sort((a,b) => b.score - a.score);
 }
 
-function estimateFunding(text, investment, size, target) {
+
+function inferMissingInputs(source = "", {size="", target="", locality="", state=""} = {}) {
+  const c = norm(source);
+  const missing = [];
+  const add = (key, label) => {
+    if (!missing.some(x => x.key === key)) missing.push({key, label});
+  };
+
+  if (/kleinstunternehmen|kleine unternehmen|mittlere unternehmen|grossunternehmen|große unternehmen|\bkm[uü]\b/.test(c) &&
+      norm(target) === "unternehmen" && !size) {
+    add("company_size", "Unternehmensgröße");
+  }
+
+  if (/c-gebiet|grw-gebiet|regionalforderung|regionalförderung|gebietskulisse|fördergebiet|fordergebiet|strukturgebiet/.test(c) &&
+      !locality) {
+    add("location", "genauer Standort / Kommune bzw. Fördergebiet");
+  }
+
+  if (/einkommensbonus|haushaltsjahreseinkommen|zu versteuerndes einkommen|jahreseinkommen/.test(c)) {
+    add("income", "zu versteuerndes Haushaltsjahreseinkommen");
+  }
+
+  if (/netto.?grundflache|nettogrundfläche|geb[aä]udefl[aä]che|wohnfl[aä]che|nutzfl[aä]che/.test(c)) {
+    add("building_area", "Gebäudegröße / Netto- bzw. Wohnfläche");
+  }
+
+  if (/wohneinheit|anzahl der wohnungen|anzahl wohnungen/.test(c)) {
+    add("housing_units", "Anzahl der Wohneinheiten");
+  }
+
+  if (/klimageschwindigkeitsbonus|effizienzbonus|emissionsminderungszuschlag|bonusvoraussetzung|bonus/.test(c)) {
+    add("bonus_conditions", "zutreffende Bonusvoraussetzungen / technische Ausführung");
+  }
+
+  if (/staffel|förderstufe|forderstufe|stufe [1-9]|basisförderung|basisforderung/.test(c)) {
+    add("funding_tier", "zutreffende Förderstufe");
+  }
+
+  if (/de-minimis|deminimis|beihilfeintensit[aä]t|beihilferecht/.test(c)) {
+    add("state_aid", "bereits erhaltene De-minimis-/Beihilfen");
+  }
+
+  if (/eigenanteil|eigenmittel|finanzierungsanteil/.test(c)) {
+    add("equity", "verfügbare Eigenmittel / Eigenanteil");
+  }
+
+  if (/projektlaufzeit|laufzeit des projekts|bewilligungszeitraum/.test(c)) {
+    add("duration", "geplante Projektlaufzeit");
+  }
+
+  return missing;
+}
+
+function estimateFunding(text, investment, size, target, locality, state) {
   if (!(investment > 0)) {
     return {
       available:false,
-      reason:"Keine Investitionssumme angegeben."
+      reason:"Keine Investitionssumme angegeben.",
+      missing_inputs:[{key:"investment",label:"Investitionssumme / Projektbudget"}]
     };
   }
 
@@ -241,7 +295,9 @@ function estimateFunding(text, investment, size, target) {
   if (!rates.length) {
     return {
       available:false,
-      reason:"In der offiziellen Programmbeschreibung wurde keine belastbare prozentuale Förderquote erkannt."
+      reason:"In der offiziellen Programmbeschreibung wurde keine belastbare prozentuale Förderquote erkannt.",
+      missing_inputs:inferMissingInputs(text,{size,target,locality,state}),
+      source_gap:true
     };
   }
 
@@ -281,18 +337,20 @@ function estimateFunding(text, investment, size, target) {
   if (ambiguous) {
     return {
       available:false,
-      reason:"Mehrere unterschiedliche Förderquoten wurden erkannt. Ohne zusätzliche Programmkriterien wäre eine Zahl irreführend.",
+      reason:"Mehrere unterschiedliche Förderquoten wurden erkannt. Für eine belastbare Berechnung fehlen noch Auswahlkriterien.",
       alternatives:rateAlternatives,
-      rule_text:selected.context
+      rule_text:selected.context,
+      missing_inputs:inferMissingInputs(selected.context,{size,target,locality,state})
     };
   }
 
   if (conditionalRule && !selected.explicit) {
     return {
       available:false,
-      reason:"Die Förderquote hängt von zusätzlichen Bedingungen wie Region, Bonus, Gebäudegröße oder Förderstufe ab. Dafür fehlen noch Eingabedaten.",
+      reason:"Die Förderquote hängt von zusätzlichen Bedingungen ab.",
       alternatives:rateAlternatives,
-      rule_text:selected.context
+      rule_text:selected.context,
+      missing_inputs:inferMissingInputs(selected.context,{size,target,locality,state})
     };
   }
 
@@ -323,6 +381,8 @@ export default async function handler(req, res) {
   const investment = Number(req.query.investment || 0) || 0;
   const size = String(req.query.size || "").trim();
   const target = String(req.query.target || "").trim();
+  const locality = String(req.query.locality || "").trim();
+  const state = String(req.query.state || "").trim();
 
   const allowed = /^https:\/\/www\.foerderdatenbank\.de\/FDB\/Content\/DE\/Foerderprogramm\//i.test(url);
   if (!allowed) {
@@ -356,7 +416,7 @@ export default async function handler(req, res) {
     const dateMatches = [...text.matchAll(/\b\d{1,2}\.\d{1,2}\.\d{4}\b/g)].map(m => m[0]);
     const uniqueDates = [...new Set(dateMatches)].slice(0, 8);
     const deadlineWarning = /Antragstellung .*nicht mehr möglich|musste .* bis zum|Portal .*geschlossen|Deadline .*geschlossen|nicht mehr berücksichtigt|bereits ausgeschöpft/i.test(text);
-    const fundingEstimate = estimateFunding(text, investment, size, target);
+    const fundingEstimate = estimateFunding(text, investment, size, target, locality, state);
     const fundingLevel = classifyFundingLevel({title, foerdergeber, foerdergebiet, text});
 
     return res.status(200).json({
