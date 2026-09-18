@@ -44,6 +44,8 @@
     .reasons{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.reason{font-size:12px;background:#f4f7fb;color:#506078;border:1px solid #e6ebf3;padding:6px 8px;border-radius:999px}.estimateBox{margin-top:13px;padding:13px 14px;border-radius:12px;background:#f0faf4;border:1px solid #cfe7d8}.estimateLabel{font-size:12px;color:#4e6a5a;font-weight:800}.estimateAmount{font-size:22px;font-weight:950;color:#176b45;margin-top:3px}.estimateCalc{font-size:12px;color:#64756c;margin-top:4px}.estimatePending{margin-top:13px;padding:11px 13px;border-radius:11px;background:#f8fafc;border:1px solid #e6ebf3;color:#718096;font-size:12px}.estimateUnavailable{margin-top:13px;padding:11px 13px;border-radius:11px;background:#fff8e6;border:1px solid #ffe09a;color:#795e14;font-size:12px}
     .links{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}a.btn{display:inline-block;text-decoration:none;background:#eef2f7;color:#1f2a3d;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px}
     .warning{background:var(--warnbg);border-color:#ffe09a;color:#755a00}.error{background:#fff0f0;border-color:#ffc9c9;color:#8b1d1d}
+    .devCoupon{margin:18px 0 0;padding:13px 15px;border-radius:12px;background:#eef8ff;border:1px solid #cfe6ff;display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}.devCoupon strong{color:#1f5fbf}.couponCode{display:inline-block;padding:5px 8px;border-radius:7px;background:#fff;border:1px dashed #9bc4ef;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:900;letter-spacing:.4px;color:#174f91}.devCoupon button{padding:8px 11px;background:#e3eef9;color:#184e86}
+    .checkoutCard{display:none;margin:18px 0 0;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 6px 22px rgba(31,46,80,.05)}.checkoutCard.show{display:block}.checkoutTop{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.checkoutTitle{font-size:20px;font-weight:900}.checkoutSub{margin-top:4px;color:#667085;font-size:13px;line-height:1.45}.checkoutPrice{text-align:right}.checkoutPrice .old{font-size:13px;color:#98a2b3;text-decoration:line-through}.checkoutPrice .now{font-size:27px;font-weight:950;color:#172033}.checkoutPrice .once{font-size:11px;color:#7c8798}.couponRow{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:16px}.couponRow input{margin:0}.couponStatus{margin-top:8px;font-size:12px;color:#667085}.couponStatus.ok{color:#157347}.couponStatus.bad{color:#b42318}.checkoutActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}.checkoutActions button{padding:11px 14px}.unlockState{margin-top:12px;padding:11px 13px;border-radius:10px;background:#edf8f1;border:1px solid #cfe7d8;color:#176b45;font-size:13px;font-weight:800}
     .warnings{display:grid;gap:8px;margin:12px 0}.warn{background:var(--warnbg);border:1px solid #ffe09a;color:#795e14;padding:10px 12px;border-radius:10px;font-size:12px}
     .inspect{border:0;background:#172033;color:#fff;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer}.detailPanel{display:none;margin-top:14px;padding:14px;background:#f8fafc;border:1px solid #e4eaf2;border-radius:12px}.detailPanel.open{display:block}.detailGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:13px;color:#596679}.detailGrid b{color:#273044}.detailFull{grid-column:1/-1}.deadline{margin-top:10px;padding:9px 10px;border-radius:9px;background:#fff2f2;border:1px solid #ffcaca;color:#8b1d1d;font-size:12px;font-weight:750}footer{margin-top:26px;color:#7a8496;font-size:12px;text-align:center;line-height:1.5}
     @media(max-width:760px){
@@ -184,6 +186,11 @@
       </div>
     </section>
 
+    <div id="devCouponBanner" class="devCoupon">
+      <div><strong>Entwicklungsphase:</strong> FörderCheck regulär 29 € einmalig. Mit <span id="devCouponCode" class="couponCode">wird geladen …</span> aktuell kostenlos.</div>
+      <button type="button" onclick="useDevelopmentCoupon()">Gutschein übernehmen</button>
+    </div>
+
     <div id="status"></div>
     <div id="warnings" class="warnings"></div>
     <div id="resultsToolbar" class="resultsToolbar">
@@ -200,11 +207,38 @@
     </div>
     <div id="results" class="results"></div>
 
+    <section id="checkoutCard" class="checkoutCard">
+      <div class="checkoutTop">
+        <div>
+          <div class="checkoutTitle">Persönlicher FörderCheck</div>
+          <div class="checkoutSub">Einmalige Detailprüfung deines Vorhabens. Kein Abo. Während der Entwicklung kann der angezeigte Gutschein verwendet werden.</div>
+        </div>
+        <div class="checkoutPrice">
+          <div id="checkoutOldPrice" class="old"></div>
+          <div id="checkoutPriceNow" class="now">29 €</div>
+          <div class="once">einmalig</div>
+        </div>
+      </div>
+      <div class="couponRow">
+        <input id="couponInput" autocomplete="off" placeholder="Gutscheincode eingeben">
+        <button type="button" class="secondary" onclick="applyCoupon()">Gutschein anwenden</button>
+      </div>
+      <div id="couponStatus" class="couponStatus">Regulärer Preis: 29 € einmalig.</div>
+      <div class="checkoutActions">
+        <button id="startCheckBtn" type="button" onclick="startFundingCheck()">FörderCheck für 29 € starten</button>
+        <span class="small">Im Entwicklungsmodus erfolgt keine echte Zahlung.</span>
+      </div>
+      <div id="unlockState"></div>
+    </section>
+
     <footer>FörderRadar Deutschland · Entwicklungsstand · keine Rechts-, Steuer- oder Förderberatung · maßgeblich sind ausschließlich die offiziellen Programmbedingungen.</footer>
   </div>
 
 <script>
 const PROFILE_KEY='foerderradar-profile-v02';
+const CHECK_ACCESS_KEY='foerderradar-check-access-v01';
+let checkoutQuote={regular_price_cents:2900,discount_cents:0,total_cents:2900,currency:'EUR',payment_required:true};
+let featuredCoupon='';
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const TARGET_UI={
   'Unternehmen':{
@@ -333,6 +367,7 @@ function resetProfile(){
   document.getElementById('status').textContent='';
   document.getElementById('summary').style.display='none';
   document.getElementById('resultsToolbar').classList.remove('show');
+  document.getElementById('checkoutCard').classList.remove('show');
 }
 function fitClass(v){return v>=80?'':v>=65?'medium':'low'}
 function levelClass(level){return level?.type||'unknown'}
@@ -453,6 +488,7 @@ async function searchFunding(){
     window.lastProfile=p;
     document.getElementById('resultsToolbarLabel').textContent=usablePrograms.length+' Ergebnisse';
     document.getElementById('resultsToolbar').classList.add('show');
+    document.getElementById('checkoutCard').classList.add('show');
     renderPrograms();
     loadTopDetails(usablePrograms,p);
   }catch(e){
@@ -511,12 +547,101 @@ async function inspectProgramByUrl(encodedUrl,btn){
   }catch(e){box.innerHTML='<div class="error">Detailprüfung fehlgeschlagen: '+esc(e.message)+'</div>';btn.textContent='Erneut prüfen'}
   finally{btn.disabled=false}
 }
+function euroCents(cents){
+  return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format((Number(cents)||0)/100);
+}
+function renderCheckoutQuote(){
+  const old=document.getElementById('checkoutOldPrice');
+  const now=document.getElementById('checkoutPriceNow');
+  const status=document.getElementById('couponStatus');
+  const btn=document.getElementById('startCheckBtn');
+  const hasDiscount=(checkoutQuote.discount_cents||0)>0;
+  old.textContent=hasDiscount?euroCents(checkoutQuote.regular_price_cents):'';
+  now.textContent=euroCents(checkoutQuote.total_cents);
+  if(checkoutQuote.coupon?.valid){
+    status.className='couponStatus ok';
+    status.textContent='Gutschein '+checkoutQuote.coupon.code+' angewendet: −'+euroCents(checkoutQuote.discount_cents)+'. Endpreis '+euroCents(checkoutQuote.total_cents)+'.';
+  }else{
+    status.className='couponStatus';
+    status.textContent='Regulärer Preis: '+euroCents(checkoutQuote.regular_price_cents)+' einmalig.';
+  }
+  btn.textContent=checkoutQuote.total_cents===0?'FörderCheck kostenlos starten':'FörderCheck für '+euroCents(checkoutQuote.total_cents)+' starten';
+}
+async function loadCheckoutConfig(){
+  try{
+    const r=await fetch('/api/checkout');
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error('Checkout nicht verfügbar');
+    checkoutQuote=d;
+    featuredCoupon=d.featured_coupon?.code||'';
+    document.getElementById('devCouponCode').textContent=featuredCoupon||'nicht verfügbar';
+    renderCheckoutQuote();
+    const saved=JSON.parse(localStorage.getItem(CHECK_ACCESS_KEY)||'null');
+    if(saved?.granted)showUnlockedState(saved);
+  }catch(e){
+    document.getElementById('devCouponBanner').style.display='none';
+  }
+}
+function useDevelopmentCoupon(){
+  if(!featuredCoupon)return;
+  document.getElementById('couponInput').value=featuredCoupon;
+  document.getElementById('checkoutCard').classList.add('show');
+  applyCoupon();
+  document.getElementById('checkoutCard').scrollIntoView({behavior:'smooth',block:'center'});
+}
+async function applyCoupon(){
+  const code=document.getElementById('couponInput').value.trim();
+  const status=document.getElementById('couponStatus');
+  status.className='couponStatus';
+  status.textContent='Gutschein wird geprüft …';
+  try{
+    const r=await fetch('/api/checkout?'+new URLSearchParams({code}));
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error('Gutscheinprüfung fehlgeschlagen');
+    checkoutQuote=d;
+    renderCheckoutQuote();
+    if(code&&!d.coupon?.valid){
+      status.className='couponStatus bad';
+      status.textContent='Gutscheincode ist ungültig. Regulärer Preis: '+euroCents(d.regular_price_cents)+'.';
+    }
+  }catch(e){
+    status.className='couponStatus bad';
+    status.textContent='Gutschein konnte nicht geprüft werden.';
+  }
+}
+function showUnlockedState(saved){
+  const box=document.getElementById('unlockState');
+  box.className='unlockState';
+  box.innerHTML='✓ FörderCheck im Entwicklungsmodus kostenlos freigeschaltet.';
+  document.getElementById('startCheckBtn').textContent='FörderCheck freigeschaltet';
+}
+async function startFundingCheck(){
+  const code=document.getElementById('couponInput').value.trim();
+  const box=document.getElementById('unlockState');
+  if(checkoutQuote.total_cents>0){
+    box.className='couponStatus bad';
+    box.textContent='Die echte Zahlungsabwicklung ist noch nicht aktiviert. Verwende während der Entwicklung den angezeigten Gutschein.';
+    return;
+  }
+  try{
+    const r=await fetch('/api/checkout?'+new URLSearchParams({code,redeem:'1'}));
+    const d=await r.json();
+    if(!r.ok||d.status!=='granted')throw new Error('Freischaltung fehlgeschlagen');
+    const access={granted:true,code:d.coupon?.code||code,granted_at:new Date().toISOString()};
+    localStorage.setItem(CHECK_ACCESS_KEY,JSON.stringify(access));
+    showUnlockedState(access);
+  }catch(e){
+    box.className='couponStatus bad';
+    box.textContent='FörderCheck konnte nicht freigeschaltet werden.';
+  }
+}
 document.getElementById('target').addEventListener('change',()=>{
   applyTargetLogic();
   saveProfile();
 });
 loadProfile();
 applyTargetLogic();
+loadCheckoutConfig();
 </script>
 </body>
 </html>
