@@ -389,7 +389,7 @@ export default async function handler(req, res) {
 
     const warnings = [];
     if (size) warnings.push("Unternehmensgröße wird jetzt als offizieller Filter der Förderdatenbank verwendet. Die endgültige Förderfähigkeit kann trotzdem zusätzliche KMU-/Beihilfekriterien enthalten.");
-    if (investment) warnings.push("Investitionssumme wird im Profil berücksichtigt, aber Förderhöhen werden erst mit dem XML-/Detaildaten-Import belastbar berechnet.");
+    if (investment) warnings.push("Die Investitionssumme wird berücksichtigt. Ein möglicher Förderbetrag wird nur angezeigt, wenn Förderquote und Höchstgrenzen eindeutig genug ermittelt werden können. Fehlen dafür Angaben, zeigt FörderRadar diese direkt beim jeweiligen Programm an.");
     if (start) warnings.push("Projektstart ist erfasst; konkrete Antragsfristen und Vorhabensbeginn-Regeln werden in der nächsten Ausbaustufe geprüft.");
     if (fundingLevel === "Kommunal") {
       warnings.push(locality
