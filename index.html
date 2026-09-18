@@ -378,17 +378,16 @@ function hasValue(v){
   const x=String(v||'').trim();
   return x.length>=3 && !/^(?:-|–|—|n\/?a|keine angabe|nicht angegeben|programm gelistet)$/i.test(x);
 }
+function hasUsableDetail(detail){
+  if(!detail)return true;
+  return [detail.foerderart,detail.foerdergebiet,detail.foerderberechtigte,detail.foerdergeber,detail.foerderbereich,detail.ansprechpunkt].filter(hasValue).length>=2;
+}
 function isRenderableProgram(program){
-  if(!program||!hasValue(program.title)||!hasValue(program.url))return false;
+  if(!program||program._invalid||!hasValue(program.title)||!hasValue(program.url))return false;
   const generic=String(program.title).toLowerCase().replace(/[^a-z0-9äöüß ]/gi,' ').replace(/\s+/g,' ').trim();
   if(['förderprogramm','förderprogramme','foerderprogramm','foerderprogramme','förderung','foerderung','suchergebnisse','programmsuche'].includes(generic))return false;
   if(!/^https:\/\/www\.foerderdatenbank\.de\/FDB\/Content\/DE\/Foerderprogramm\/(?:Bund|Land|EU)\/.+\.html/i.test(program.url))return false;
-  const detail=program._detail||{};
-  const signals=[
-    program.who,program.what,program.giver,program.area,
-    detail.foerderart,detail.foerdergebiet,detail.foerderberechtigte,detail.foerdergeber,detail.foerderbereich
-  ].filter(hasValue).length;
-  return signals>=2;
+  return hasUsableDetail(program._detail);
 }
 function sortedPrograms(programs,mode){
   const copy=[...programs].filter(isRenderableProgram);
