@@ -487,6 +487,7 @@ async function loadTopDetails(programs,p){
         const d=await r.json();
         if(!r.ok||!d.ok)throw new Error(d.error||'Programmdetails nicht verfügbar');
         program._detail=d;
+        program._invalid=!hasUsableDetail(d);
       }catch(e){
         program._detailError=e.message||'Fehler';
       }
