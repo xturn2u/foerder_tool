@@ -45,7 +45,7 @@
     .links{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}a.btn{display:inline-block;text-decoration:none;background:#eef2f7;color:#1f2a3d;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px}
     .warning{background:var(--warnbg);border-color:#ffe09a;color:#755a00}.error{background:#fff0f0;border-color:#ffc9c9;color:#8b1d1d}
     .warnings{display:grid;gap:8px;margin:12px 0}.warn{background:var(--warnbg);border:1px solid #ffe09a;color:#795e14;padding:10px 12px;border-radius:10px;font-size:12px}
-    footer{margin-top:26px;color:#7a8496;font-size:12px;text-align:center;line-height:1.5}
+    .inspect{border:0;background:#172033;color:#fff;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer}.detailPanel{display:none;margin-top:14px;padding:14px;background:#f8fafc;border:1px solid #e4eaf2;border-radius:12px}.detailPanel.open{display:block}.detailGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:13px;color:#596679}.detailGrid b{color:#273044}.detailFull{grid-column:1/-1}.deadline{margin-top:10px;padding:9px 10px;border-radius:9px;background:#fff2f2;border:1px solid #ffcaca;color:#8b1d1d;font-size:12px;font-weight:750}footer{margin-top:26px;color:#7a8496;font-size:12px;text-align:center;line-height:1.5}
     @media(max-width:760px){
       h1{font-size:34px}.form,.thirds{grid-template-columns:1fr}.full{grid-column:auto}.hero{padding:22px}.row{flex-direction:column}.fit{align-self:flex-start}.summary{grid-template-columns:1fr 1fr}
     }
@@ -237,13 +237,34 @@ async function searchFunding(){
           <div><strong>Status:</strong> ${esc(p.status)}</div>
         </div>
         ${p.reasons?.length?'<div class="reasons">'+p.reasons.map(r=>'<span class="reason">'+esc(r)+'</span>').join('')+'</div>':''}
-        <div class="links"><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Offizielle Programmdetails ↗</a></div>
+        <div class="links"><button class="inspect" onclick="inspectProgram(${i},this)">Programm prüfen</button><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Offizielle Quelle ↗</a></div><div id="detail-${i}" class="detailPanel"></div>
       </article>
     `).join('');
   }catch(e){
     status.textContent='';
     results.innerHTML='<div class="card error"><strong>Live-Suche fehlgeschlagen.</strong><br>'+esc(e.message)+'<br><small>FörderRadar zeigt bewusst keine erfundenen Ersatztreffer an.</small></div>';
   }finally{btn.disabled=false}
+}
+async function inspectProgram(i,btn){
+  const p=(window.lastPrograms||[])[i]; if(!p)return;
+  const box=document.getElementById('detail-'+i);
+  if(box.classList.contains('open')){box.classList.remove('open');btn.textContent='Programm prüfen';return}
+  btn.disabled=true;btn.textContent='Prüfe …';box.classList.add('open');box.innerHTML='<span class="small">Offizielle Programmdaten werden geladen …</span>';
+  try{
+    const r=await fetch('/api/program?'+new URLSearchParams({url:p.url}));
+    const d=await r.json(); if(!r.ok||!d.ok)throw new Error(d.error||'Detailprüfung fehlgeschlagen');
+    const parts=[
+      ['Förderart',d.foerderart],['Fördergebiet',d.foerdergebiet],
+      ['Förderberechtigte',d.foerderberechtigte],['Fördergeber',d.foerdergeber],
+      ['Förderbereich',d.foerderbereich],['Ansprechpunkt',d.ansprechpunkt]
+    ].filter(x=>x[1]);
+    box.innerHTML='<div class="detailGrid">'+parts.map(x=>'<div><b>'+esc(x[0])+':</b> '+esc(x[1])+'</div>').join('')+
+      (d.dates?.length?'<div class="detailFull"><b>Erkannte Datumsangaben:</b> '+d.dates.map(esc).join(', ')+'</div>':'')+
+      (d.rechtsgrundlage?'<div class="detailFull"><b>Rechtsgrundlage / Fristtext:</b><br>'+esc(d.rechtsgrundlage)+'</div>':'')+
+      '</div>'+(d.deadline_warning?'<div class="deadline">⚠ Im offiziellen Text wurde ein Hinweis auf eine abgelaufene oder geschlossene Frist erkannt. Bitte die Programmbedingungen prüfen.</div>':'');
+    btn.textContent='Prüfung schließen';
+  }catch(e){box.innerHTML='<div class="error">Detailprüfung fehlgeschlagen: '+esc(e.message)+'</div>';btn.textContent='Erneut prüfen'}
+  finally{btn.disabled=false}
 }
 loadProfile();
 </script>
