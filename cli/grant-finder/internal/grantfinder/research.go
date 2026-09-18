@@ -1,0 +1,800 @@
+package grantfinder
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
+
+type Assignment struct {
+	AssignmentID      string         `json:"assignment_id"`
+	ResearchQuestion  string         `json:"research_question,omitempty"`
+	CompanyProfile    CompanyProfile `json:"company_profile"`
+	FocusAreas        []string       `json:"focus_areas"`
+	TargetGeographies []string       `json:"target_geographies"`
+	KnownGrants       []KnownGrant   `json:"known_grants"`
+}
+
+type CompanyProfile struct {
+	Name         string   `json:"name,omitempty"`
+	Description  string   `json:"description"`
+	Stage        string   `json:"stage,omitempty"`
+	Location     string   `json:"location,omitempty"`
+	Technologies []string `json:"technologies,omitempty"`
+	Constraints  []string `json:"constraints,omitempty"`
+}
+
+type KnownGrant struct {
+	ProgramName   string `json:"program_name,omitempty"`
+	OpportunityID string `json:"opportunity_id,omitempty"`
+	URL           string `json:"url,omitempty"`
+}
+
+type ResearchOptions struct {
+	DBPath          string
+	Limit           int
+	Refresh         string
+	Semantic        string
+	Compact         bool
+	IncludeInactive bool
+	Now             time.Time
+}
+
+type ResearchPacket struct {
+	AssignmentID string                `json:"assignment_id"`
+	GeneratedAt  string                `json:"generated_at"`
+	Retrieval    RetrievalInfo         `json:"retrieval"`
+	Summary      ResearchSummary       `json:"summary"`
+	Grants       []GrantRecommendation `json:"grants"`
+	Coverage     []CoverageRow         `json:"coverage"`
+}
+
+type RetrievalInfo struct {
+	Backend string `json:"backend"`
+	Query   string `json:"query"`
+	NoLLM   bool   `json:"no_llm"`
+}
+
+type ResearchSummary struct {
+	TotalPotentialFunding string   `json:"total_potential_funding"`
+	HighFitCount          int      `json:"high_fit_count"`
+	NearestDeadline       *string  `json:"nearest_deadline"`
+	Notes                 []string `json:"notes,omitempty"`
+}
+
+type GrantRecommendation struct {
+	RecommendationID   string         `json:"recommendation_id"`
+	OpportunityID      int64          `json:"opportunity_id"`
+	ProgramName        string         `json:"program_name"`
+	Agency             string         `json:"agency"`
+	Amount             string         `json:"amount"`
+	Deadline           *string        `json:"deadline"`
+	DeadlineCertainty  string         `json:"deadline_certainty"`
+	EligibilityFit     FitAssessment  `json:"eligibility_fit"`
+	EffortEstimate     FitAssessment  `json:"effort_estimate"`
+	ActivityStatus     FitAssessment  `json:"activity_status"`
+	URL                string         `json:"url"`
+	ApplicationOutline []string       `json:"application_outline,omitempty"`
+	Evidence           []EvidenceItem `json:"evidence"`
+}
+
+type FitAssessment struct {
+	Level       string `json:"level"`
+	Explanation string `json:"explanation"`
+}
+
+type EvidenceItem struct {
+	SourceID string `json:"source_id"`
+	URL      string `json:"url"`
+	Claim    string `json:"claim"`
+}
+
+type CoverageRow struct {
+	SourceLane string `json:"source_lane"`
+	Status     string `json:"status"`
+	Note       string `json:"note,omitempty"`
+}
+
+type ExplainPacket struct {
+	Opportunity OpportunityRecord `json:"opportunity"`
+	Evidence    []EvidenceItem    `json:"evidence"`
+	Sources     []Ref             `json:"sources"`
+	Notes       []string          `json:"notes,omitempty"`
+	NoLLM       bool              `json:"no_llm"`
+}
+
+func ParseAssignment(data []byte) (Assignment, error) {
+	var assignment Assignment
+	if err := json.Unmarshal(data, &assignment); err != nil {
+		return assignment, err
+	}
+	if strings.TrimSpace(assignment.AssignmentID) == "" {
+		return assignment, fmt.Errorf("assignment_id is required")
+	}
+	if strings.TrimSpace(assignment.CompanyProfile.Description) == "" {
+		return assignment, fmt.Errorf("company_profile.description is required")
+	}
+	if assignment.FocusAreas == nil {
+		assignment.FocusAreas = []string{}
+	}
+	if assignment.TargetGeographies == nil {
+		assignment.TargetGeographies = []string{}
+	}
+	if assignment.KnownGrants == nil {
+		assignment.KnownGrants = []KnownGrant{}
+	}
+	return assignment, nil
+}
+
+func Research(ctx context.Context, opts ResearchOptions, assignment Assignment) (ResearchPacket, error) {
+	if opts.Limit <= 0 {
+		opts.Limit = 10
+	}
+	if opts.Refresh == "" {
+		opts.Refresh = "auto"
+	}
+	if opts.Semantic == "" {
+		opts.Semantic = "auto"
+	}
+	if opts.Now.IsZero() {
+		opts.Now = time.Now().UTC()
+	}
+	if opts.Refresh == "auto" {
+		if err := refreshIfEmpty(ctx, opts, assignment); err != nil {
+			return ResearchPacket{}, err
+		}
+	}
+	store, err := OpenStore(ctx, opts.DBPath)
+	if err != nil {
+		return ResearchPacket{}, err
+	}
+	defer store.Close()
+
+	query := BuildAssignmentQuery(assignment)
+	records, backend, err := CandidateRecords(ctx, store, opts.DBPath, query, opts.Semantic, opts.Limit*20)
+	if err != nil {
+		return ResearchPacket{}, err
+	}
+	recs := make([]GrantRecommendation, 0, opts.Limit)
+	seen := map[int64]bool{}
+	for _, record := range records {
+		if seen[record.ID] || IsKnownGrant(assignment, record) {
+			continue
+		}
+		activity := AssessActivity(record, opts.Now)
+		if !opts.IncludeInactive && activity.Level == "inactive" {
+			continue
+		}
+		seen[record.ID] = true
+		rec := BuildRecommendation(assignment, record, activity)
+		recs = append(recs, rec)
+		if len(recs) >= opts.Limit {
+			break
+		}
+	}
+	summary := BuildSummary(recs, opts.IncludeInactive)
+	if health, err := store.RecentRunHealth(ctx, 10); err == nil {
+		summary.Notes = append(summary.Notes, refreshHealthNotes(health)...)
+	}
+	packet := ResearchPacket{
+		AssignmentID: assignment.AssignmentID,
+		GeneratedAt:  time.Now().UTC().Format(time.RFC3339),
+		Retrieval: RetrievalInfo{
+			Backend: backend,
+			Query:   query,
+			NoLLM:   true,
+		},
+		Summary:  summary,
+		Grants:   recs,
+		Coverage: BuildCoverage(ctx, assignment, store),
+	}
+	return packet, nil
+}
+
+func Explain(ctx context.Context, dbPath, idOrKey string) (ExplainPacket, error) {
+	store, err := OpenStore(ctx, dbPath)
+	if err != nil {
+		return ExplainPacket{}, err
+	}
+	defer store.Close()
+	var rec OpportunityRecord
+	if id, err := strconv.ParseInt(idOrKey, 10, 64); err == nil {
+		rec, err = store.OpportunityByID(ctx, id)
+		if err != nil {
+			return ExplainPacket{}, err
+		}
+	} else {
+		rec, err = store.OpportunityByKey(ctx, idOrKey)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return ExplainPacket{}, fmt.Errorf("opportunity not found: %s", idOrKey)
+			}
+			return ExplainPacket{}, err
+		}
+	}
+	return ExplainPacket{
+		Opportunity: rec,
+		Evidence:    evidenceForOpportunity(rec),
+		Sources:     rec.SourceRefs,
+		Notes:       []string{"deterministic explanation; no LLM call was made"},
+		NoLLM:       true,
+	}, nil
+}
+
+func BuildAssignmentQuery(a Assignment) string {
+	var parts []string
+	parts = append(parts, a.FocusAreas...)
+	parts = append(parts, a.CompanyProfile.Technologies...)
+	parts = append(parts, a.TargetGeographies...)
+	parts = append(parts, a.ResearchQuestion, a.CompanyProfile.Description, a.CompanyProfile.Stage, a.CompanyProfile.Location)
+	return strings.Join(parts, " ")
+}
+
+func BuildRecommendation(a Assignment, rec OpportunityRecord, activity FitAssessment) GrantRecommendation {
+	fit := AssessFit(a, rec)
+	effort := EstimateEffort(rec)
+	certainty := DeadlineCertainty(rec.DeadlineText)
+	var deadline *string
+	if strings.TrimSpace(rec.DeadlineText) != "" {
+		d := rec.DeadlineText
+		deadline = &d
+	}
+	recommendation := GrantRecommendation{
+		RecommendationID:  fmt.Sprintf("rec-%d", rec.ID),
+		OpportunityID:     rec.ID,
+		ProgramName:       fallback(rec.Title, "Unknown program"),
+		Agency:            fallback(rec.Sponsor, "Unknown agency"),
+		Amount:            "unknown from current evidence",
+		Deadline:          deadline,
+		DeadlineCertainty: certainty,
+		EligibilityFit:    fit,
+		EffortEstimate:    effort,
+		ActivityStatus:    activity,
+		URL:               rec.URL,
+		Evidence:          evidenceForOpportunity(rec),
+	}
+	if fit.Level == "high" {
+		recommendation.ApplicationOutline = []string{
+			"Company and technology overview",
+			"Problem, deployment context, and public benefit",
+			"Technical approach and work plan",
+			"Commercialization or deployment plan",
+			"Budget, milestones, and partner commitments",
+		}
+	}
+	return recommendation
+}
+
+func AssessActivity(rec OpportunityRecord, now time.Time) FitAssessment {
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	haystack := strings.ToLower(strings.Join([]string{
+		rec.Title,
+		rec.Sponsor,
+		rec.DeadlineText,
+		rec.Published,
+		rec.Summary,
+		strings.Join(rec.RawSignals, " "),
+	}, " "))
+
+	switch {
+	case hasActivitySignal(rec, "archived") || hasStatusPhrase(haystack, "archived"):
+		return FitAssessment{Level: "inactive", Explanation: "Source status indicates archived."}
+	case hasActivitySignal(rec, "closed", "closed_solicitation") || hasStatusPhrase(haystack, "closed"):
+		return FitAssessment{Level: "inactive", Explanation: "Source status indicates closed."}
+	case hasActivitySignal(rec, "expired") || hasStatusPhrase(haystack, "expired"):
+		return FitAssessment{Level: "inactive", Explanation: "Source status indicates expired."}
+	}
+
+	if deadline, ok := ParseOpportunityDate(rec.DeadlineText); ok {
+		if deadline.Before(today) {
+			return FitAssessment{Level: "inactive", Explanation: "Deadline is past due: " + deadline.Format("2006-01-02") + "."}
+		}
+		return FitAssessment{Level: "active", Explanation: "Deadline is current: " + deadline.Format("2006-01-02") + "."}
+	}
+
+	deadlineText := strings.ToLower(strings.TrimSpace(rec.DeadlineText))
+	switch {
+	case strings.Contains(deadlineText, "accepted anytime"), strings.Contains(deadlineText, "continuous"), strings.Contains(deadlineText, "rolling"):
+		return FitAssessment{Level: "active", Explanation: "Deadline language indicates a rolling or anytime submission window."}
+	case strings.Contains(haystack, "posted"), strings.Contains(haystack, "forecasted"):
+		return FitAssessment{Level: "active", Explanation: "Source status indicates posted or forecasted and no past deadline was found."}
+	case strings.Contains(deadlineText, "awaiting"), strings.Contains(deadlineText, "nofo"), strings.Contains(deadlineText, "projected"):
+		return FitAssessment{Level: "active", Explanation: "Opportunity is awaiting or projecting a future NOFO."}
+	}
+
+	if published, ok := ParseOpportunityDate(rec.Published); ok {
+		staleCutoff := today.AddDate(-2, 0, 0)
+		if published.Before(staleCutoff) {
+			return FitAssessment{Level: "inactive", Explanation: "No current deadline or active status; publication is stale: " + published.Format("2006-01-02") + "."}
+		}
+	}
+
+	return FitAssessment{Level: "active", Explanation: "No closed, archived, expired, or past-due signal was found."}
+}
+
+func hasActivitySignal(rec OpportunityRecord, values ...string) bool {
+	want := map[string]bool{}
+	for _, value := range values {
+		want[strings.ToLower(strings.TrimSpace(value))] = true
+	}
+	for _, signal := range rec.RawSignals {
+		normalized := strings.ToLower(strings.TrimSpace(signal))
+		if want[normalized] {
+			return true
+		}
+	}
+	return false
+}
+
+func hasStatusPhrase(haystack, status string) bool {
+	status = strings.ToLower(strings.TrimSpace(status))
+	for _, phrase := range []string{
+		"status: " + status,
+		"opportunity status: " + status,
+		"oppstatus: " + status,
+		"opp status: " + status,
+		"source status indicates " + status,
+	} {
+		if strings.Contains(haystack, phrase) {
+			return true
+		}
+	}
+	return false
+}
+
+func ParseOpportunityDate(value string) (time.Time, bool) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return time.Time{}, false
+	}
+	value = strings.TrimSuffix(value, ".")
+	for _, layout := range []string{
+		"2006-01-02",
+		"01/02/2006",
+		"1/2/2006",
+		"Jan 02, 2006",
+		"January 02, 2006",
+		"Jan 2, 2006",
+		"January 2, 2006",
+	} {
+		if parsed, err := time.Parse(layout, value); err == nil {
+			return parsed, true
+		}
+	}
+	return time.Time{}, false
+}
+
+func AssessFit(a Assignment, rec OpportunityRecord) FitAssessment {
+	haystack := strings.ToLower(strings.Join([]string{
+		rec.Title, rec.Sponsor, rec.RecordType, rec.Summary, rec.Eligibility,
+		strings.Join(rec.RawSignals, " "),
+	}, " "))
+	assignmentText := strings.ToLower(strings.Join([]string{
+		a.ResearchQuestion,
+		a.CompanyProfile.Description,
+		a.CompanyProfile.Stage,
+		strings.Join(a.CompanyProfile.Constraints, " "),
+	}, " "))
+	recordIsSBIR := strings.Contains(haystack, "sbir") || strings.Contains(haystack, "sttr") || strings.Contains(haystack, "small business innovation")
+	if recordIsSBIR && assignmentExcludesSBIR(assignmentText) {
+		return FitAssessment{Level: "low", Explanation: "Assignment constraints exclude SBIR/STTR; this record appears to be an SBIR/STTR vehicle."}
+	}
+	score := 0
+	var matched []string
+	domainScore := 0
+	for _, term := range append(a.FocusAreas, a.CompanyProfile.Technologies...) {
+		term = strings.ToLower(strings.TrimSpace(term))
+		if term != "" && strings.Contains(haystack, term) {
+			score += 2
+			domainScore += 2
+			matched = append(matched, term)
+		}
+	}
+	for _, geo := range a.TargetGeographies {
+		geo = strings.ToLower(strings.TrimSpace(geo))
+		if geo != "" && strings.Contains(haystack, geo) {
+			score++
+			matched = append(matched, geo)
+		}
+	}
+	if recordIsSBIR && assignmentAllowsSmallBusinessFunding(assignmentText) {
+		score++
+		matched = append(matched, "SBIR/STTR")
+	}
+	switch {
+	case score >= 5:
+		return FitAssessment{Level: "high", Explanation: "Matched strong assignment signals: " + strings.Join(uniqueStrings(matched), ", ")}
+	case score >= 2 && domainScore > 0:
+		return FitAssessment{Level: "medium", Explanation: "Some assignment signals matched; agent should verify eligibility details against the official source."}
+	default:
+		return FitAssessment{Level: "low", Explanation: "Few explicit assignment signals matched in current ledger evidence."}
+	}
+}
+
+func assignmentExcludesSBIR(text string) bool {
+	for _, phrase := range []string{
+		"not sbir",
+		"not sttr",
+		"not an sbir",
+		"not an sttr",
+		"not sbir/sttr",
+		"sbir/sttr is not",
+		"sbir is not",
+		"sttr is not",
+		"not the right vehicle",
+		"not an appropriate vehicle",
+	} {
+		if strings.Contains(text, phrase) {
+			return true
+		}
+	}
+	return false
+}
+
+func assignmentAllowsSmallBusinessFunding(text string) bool {
+	return strings.Contains(text, "small business") ||
+		strings.Contains(text, "startup") ||
+		strings.Contains(text, "company") ||
+		strings.Contains(text, "commercialization")
+}
+
+func EstimateEffort(rec OpportunityRecord) FitAssessment {
+	haystack := strings.ToLower(strings.Join([]string{rec.Title, rec.Summary, rec.Eligibility}, " "))
+	switch {
+	case strings.Contains(haystack, "letter of intent") || strings.Contains(haystack, "matching funds") || strings.Contains(haystack, "consortium") || strings.Contains(haystack, "partnership"):
+		return FitAssessment{Level: "high", Explanation: "Evidence suggests LOI, matching funds, partnership, or consortium work."}
+	case strings.Contains(haystack, "proposal") || strings.Contains(haystack, "application") || strings.Contains(haystack, "phase ii"):
+		return FitAssessment{Level: "medium", Explanation: "Likely requires a structured application or technical proposal."}
+	default:
+		return FitAssessment{Level: "low", Explanation: "No high-effort application signals found in current evidence."}
+	}
+}
+
+func DeadlineCertainty(deadline string) string {
+	d := strings.ToLower(strings.TrimSpace(deadline))
+	switch {
+	case d == "":
+		return "unknown"
+	case strings.Contains(d, "awaiting") || strings.Contains(d, "nofo"):
+		return "awaiting_nofo"
+	case strings.Contains(d, "projected") || strings.Contains(d, "estimated"):
+		return "projected"
+	default:
+		return "confirmed"
+	}
+}
+
+func BuildSummary(recs []GrantRecommendation, includeInactive bool) ResearchSummary {
+	high := 0
+	var nearest *string
+	for _, rec := range recs {
+		if rec.EligibilityFit.Level == "high" {
+			high++
+		}
+		if rec.Deadline != nil && (nearest == nil || deadlineSortKey(rec.Deadline) < deadlineSortKey(nearest)) {
+			d := *rec.Deadline
+			nearest = &d
+		}
+	}
+	notes := []string{"candidate retrieval is deterministic; no LLM call was made inside the CLI"}
+	if !includeInactive {
+		notes = append(notes, "inactive opportunities are filtered by default; pass --include-inactive for historical comps")
+	}
+	return ResearchSummary{
+		TotalPotentialFunding: "unknown from current evidence",
+		HighFitCount:          high,
+		NearestDeadline:       nearest,
+		Notes:                 notes,
+	}
+}
+
+func refreshHealthNotes(health RunHealth) []string {
+	if health.Errors == 0 {
+		return nil
+	}
+	if health.Items == 0 {
+		return []string{
+			fmt.Sprintf("source refresh was inconclusive: %d recent refresh lane(s) reported errors and returned zero records; do not treat empty results as negative evidence", health.Errors),
+		}
+	}
+	return []string{
+		fmt.Sprintf("source refresh completed with %d recent error(s); coverage may be partial", health.Errors),
+	}
+}
+
+// BuildCoverage reports per-source-lane coverage for a Research Assignment.
+//
+// The truthful question is "did the ledger get any records from this lane
+// during the most recent refresh?" — not "did we surface a record from this
+// lane in the returned candidate set?" A lane can be well-covered but miss a
+// particular retrieval query; that is not the same thing as "checked_no_match."
+//
+// When store is nil (e.g., a hypothetical preflight before any refresh) every
+// lane reports "not_checked".
+func BuildCoverage(ctx context.Context, a Assignment, store *Store) []CoverageRow {
+	health, _ := recentCoverageHealth(ctx, store)
+	status := func(needles ...string) (string, string) {
+		return statusFromLedger(ctx, store, health, needles...)
+	}
+	arpae, arpaeReason := status("arpa-e", "advanced research projects agency energy")
+	arpaeNote := "energy funding lane"
+	if arpae == "checked_no_match" {
+		// Negative-evidence call-out per docs/adr/0001 and product-surface:
+		// ARPA-E is a must-check lane, so surface absence explicitly.
+		arpaeNote = "No current ARPA-E programs match"
+	}
+	arpaeNote = coverageNote(arpaeNote, arpaeReason)
+	grantsStatus, grantsReason := status("grants.gov")
+	sbirStatus, sbirReason := status("sbir", "sttr", "small business innovation")
+	eereStatus, eereReason := status("eere", "energy efficiency and renewable energy")
+	nsfStatus, nsfReason := status("national science foundation", "nsf")
+	rows := []CoverageRow{
+		{SourceLane: "Grants.gov", Status: grantsStatus, Note: coverageNote("canonical federal opportunity lane", grantsReason)},
+		{SourceLane: "SBIR/STTR", Status: sbirStatus, Note: coverageNote("small business funding lane", sbirReason)},
+		{SourceLane: "ARPA-E", Status: arpae, Note: arpaeNote},
+		{SourceLane: "DOE EERE", Status: eereStatus, Note: coverageNote("energy funding lane", eereReason)},
+		{SourceLane: "NSF", Status: nsfStatus, Note: coverageNote("research and commercialization lane", nsfReason)},
+	}
+	for _, geo := range a.TargetGeographies {
+		geo = strings.TrimSpace(geo)
+		if geo == "" || strings.EqualFold(geo, "United States") {
+			continue
+		}
+		geoStatus, geoReason := status(strings.ToLower(geo))
+		rows = append(rows, CoverageRow{
+			SourceLane: "state economic development: " + geo,
+			Status:     geoStatus,
+			Note:       coverageNote("state-specific source lane required by assignment geography", geoReason),
+		})
+	}
+	return rows
+}
+
+type coverageHealth struct {
+	runs   int
+	items  int
+	errors int
+}
+
+func recentCoverageHealth(ctx context.Context, store *Store) (coverageHealth, error) {
+	if store == nil {
+		return coverageHealth{}, nil
+	}
+	health, err := store.RecentRunHealth(ctx, 10)
+	if err != nil {
+		return coverageHealth{}, err
+	}
+	return coverageHealth{runs: health.Runs, items: health.Items, errors: health.Errors}, nil
+}
+
+func (h coverageHealth) refreshFailedWithoutRecords() bool {
+	return h.runs > 0 && h.items == 0 && h.errors > 0
+}
+
+func statusFromLedger(ctx context.Context, store *Store, health coverageHealth, needles ...string) (string, string) {
+	if store == nil {
+		return "not_checked", "store was not opened"
+	}
+	matched, err := store.CoverageMatch(ctx, needles)
+	if err != nil {
+		return "not_checked", "coverage query failed"
+	}
+	if matched {
+		return "matched", ""
+	}
+	if health.refreshFailedWithoutRecords() {
+		return "not_checked", "recent source refresh failed before loading records; coverage inconclusive"
+	}
+	return "checked_no_match", ""
+}
+
+func coverageNote(base, reason string) string {
+	if reason == "" {
+		return base
+	}
+	if base == "" {
+		return reason
+	}
+	return base + "; " + reason
+}
+
+func IsKnownGrant(a Assignment, rec OpportunityRecord) bool {
+	for _, known := range a.KnownGrants {
+		if known.OpportunityID != "" && (strings.EqualFold(known.OpportunityID, rec.OpportunityNumber) || strings.EqualFold(known.OpportunityID, rec.DedupeKey)) {
+			return true
+		}
+		if known.URL != "" && NormalizeURL(known.URL) == NormalizeURL(rec.URL) {
+			return true
+		}
+		if known.ProgramName != "" && strings.EqualFold(cleanText(known.ProgramName), cleanText(rec.Title)) {
+			return true
+		}
+	}
+	return false
+}
+
+func evidenceForOpportunity(rec OpportunityRecord) []EvidenceItem {
+	claim := fallback(rec.Summary, rec.Title)
+	if claim == "" {
+		claim = "Opportunity exists in the local ledger."
+	}
+	var out []EvidenceItem
+	if len(rec.SourceRefs) == 0 {
+		return []EvidenceItem{{SourceID: "ledger", URL: rec.URL, Claim: claim}}
+	}
+	for _, ref := range rec.SourceRefs {
+		out = append(out, EvidenceItem{
+			SourceID: fallback(ref.SourceID, "ledger"),
+			URL:      fallback(ref.SourceURL, rec.URL),
+			Claim:    claim,
+		})
+	}
+	return out
+}
+
+func refreshIfEmpty(ctx context.Context, opts ResearchOptions, assignment Assignment) error {
+	store, err := OpenStore(ctx, opts.DBPath)
+	if err != nil {
+		return err
+	}
+	stats, err := store.Stats(ctx)
+	_ = store.Close()
+	if err != nil {
+		return err
+	}
+	if stats.Opportunities > 0 {
+		return nil
+	}
+	grantRefreshLimit := opts.Limit
+	if grantRefreshLimit <= 0 {
+		grantRefreshLimit = 10
+	}
+	if grantRefreshLimit < 5 {
+		grantRefreshLimit = 5
+	}
+	if grantRefreshLimit > 25 {
+		grantRefreshLimit = 25
+	}
+	if _, err = RunSync(ctx, SyncOptions{
+		DBPath:       opts.DBPath,
+		Limit:        25,
+		IncludeFeeds: true,
+	}); err != nil {
+		return err
+	}
+	for _, keyword := range KeywordsForAssignment(assignment) {
+		if _, err = RunSync(ctx, SyncOptions{
+			DBPath:        opts.DBPath,
+			Limit:         grantRefreshLimit,
+			Keyword:       keyword,
+			IncludeGrants: true,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// KeywordForAssignment picks a Grants.gov search keyword from a Research
+// Assignment. The keyword is what we feed to the Grants.gov API during
+// refresh — it materially shapes what shows up in the ledger.
+//
+// Stage is the strongest signal. An academic lab is not an SBIR target even
+// when the brief mentions "not SBIR/STTR" — a substring match on "sbir" in
+// such a phrase would be a false positive. We branch on stage first.
+func KeywordForAssignment(a Assignment) string {
+	stage := strings.ToLower(a.CompanyProfile.Stage)
+	if strings.Contains(stage, "academic") || strings.Contains(stage, "university") || strings.Contains(stage, "lab") {
+		if len(a.FocusAreas) > 0 {
+			return a.FocusAreas[0]
+		}
+		return "research"
+	}
+	text := strings.ToLower(BuildAssignmentQuery(a))
+	switch {
+	case strings.Contains(text, "sbir"), strings.Contains(text, "sttr"), strings.Contains(text, "startup"), strings.Contains(text, "small business"):
+		return "SBIR"
+	case strings.Contains(text, "climate"), strings.Contains(text, "clean energy"):
+		return "clean energy"
+	case len(a.FocusAreas) > 0:
+		return a.FocusAreas[0]
+	default:
+		return "grant"
+	}
+}
+
+// KeywordsForAssignment returns the bounded set of Grants.gov keyword searches
+// used to seed an empty ledger. The CLI should retrieve a broad candidate pool
+// from deterministic public sources; final fit judgment belongs to the
+// upstream agent.
+func KeywordsForAssignment(a Assignment) []string {
+	const maxKeywords = 6
+	var keywords []string
+	seen := map[string]bool{}
+	add := func(value string) {
+		value = normalizeKeyword(value)
+		if value == "" || isWeakRefreshKeyword(value) {
+			return
+		}
+		key := strings.ToLower(value)
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+		keywords = append(keywords, value)
+	}
+
+	for _, value := range a.FocusAreas {
+		add(value)
+	}
+	for _, value := range a.CompanyProfile.Technologies {
+		add(value)
+	}
+	add(KeywordForAssignment(a))
+
+	assignmentText := strings.ToLower(strings.Join([]string{
+		a.ResearchQuestion,
+		a.CompanyProfile.Description,
+		a.CompanyProfile.Stage,
+		strings.Join(a.CompanyProfile.Constraints, " "),
+	}, " "))
+	if assignmentAllowsSmallBusinessFunding(assignmentText) && !assignmentExcludesSBIR(assignmentText) {
+		add("SBIR")
+	}
+	if len(keywords) == 0 {
+		keywords = append(keywords, "grant")
+	}
+	if len(keywords) > maxKeywords {
+		return keywords[:maxKeywords]
+	}
+	return keywords
+}
+
+func normalizeKeyword(value string) string {
+	return strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+}
+
+func isWeakRefreshKeyword(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", "united states", "usa", "us", "startup", "company", "small business", "funding", "grant", "grants":
+		return true
+	default:
+		return false
+	}
+}
+
+func deadlineSortKey(deadline *string) string {
+	if deadline == nil || *deadline == "" {
+		return "9999-99-99"
+	}
+	return *deadline
+}
+
+func fallback(v, fallbackValue string) string {
+	if strings.TrimSpace(v) != "" {
+		return v
+	}
+	return fallbackValue
+}
+
+func uniqueStrings(values []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" && !seen[strings.ToLower(value)] {
+			seen[strings.ToLower(value)] = true
+			out = append(out, value)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
