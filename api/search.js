@@ -384,9 +384,6 @@ export default async function handler(req, res) {
       .slice(0, 24);
 
     const warnings = [];
-    if (size) warnings.push("Unternehmensgröße wird jetzt als offizieller Filter der Förderdatenbank verwendet. Die endgültige Förderfähigkeit kann trotzdem zusätzliche KMU-/Beihilfekriterien enthalten.");
-    if (investment) warnings.push("Die Investitionssumme wird berücksichtigt. Ein möglicher Förderbetrag wird nur angezeigt, wenn Förderquote und Höchstgrenzen eindeutig genug ermittelt werden können. Fehlen dafür Angaben, zeigt FörderRadar diese direkt beim jeweiligen Programm an.");
-    if (start) warnings.push("Projektstart ist erfasst; konkrete Antragsfristen und Vorhabensbeginn-Regeln werden in der nächsten Ausbaustufe geprüft.");
     if (fundingLevel === "Kommunal") {
       warnings.push(locality
         ? "Kommunale Suche ist nur ein Zusatztest: Die Förderdatenbank des Bundes deckt primär Programme von Bund, Ländern und EU ab und besitzt keinen eigenen kommunalen Fördergeber-Filter. Kommunale Förderprogramme können deshalb fehlen."
