@@ -39,7 +39,7 @@
     .card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:19px;box-shadow:0 4px 16px rgba(31,46,80,.035)}
     .row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.title{font-weight:850;font-size:18px;line-height:1.35}
     .fit{white-space:nowrap;font-weight:900;font-size:13px;background:var(--greenbg);color:var(--green);padding:7px 9px;border-radius:999px}
-    .fit.medium{background:var(--bluebg);color:var(--blue)}.fit.low{background:#f3f4f6;color:#667085}
+    .fit.medium{background:var(--bluebg);color:var(--blue)}.fit.low{background:#f3f4f6;color:#667085}.levelBadges{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.levelBadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:850;padding:6px 9px;border-radius:999px;border:1px solid #dde4ee;background:#f6f8fb;color:#536175}.levelBadge.federal{background:#eff6ff;border-color:#cfe0ff;color:#1f5fbf}.levelBadge.state{background:#eef9f2;border-color:#cfead8;color:#1f7148}.levelBadge.municipal{background:#fff7e8;border-color:#f5dca6;color:#8a5c00}.levelBadge.eu,.levelBadge.eu_state{background:#f4efff;border-color:#ded0ff;color:#6941c6}.levelBadge.unknown{background:#f6f7f9;color:#6b7280}
     .meta{margin-top:11px;display:grid;gap:7px;font-size:14px;color:#5d6678;line-height:1.45}.meta strong{color:#273044}
     .reasons{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.reason{font-size:12px;background:#f4f7fb;color:#506078;border:1px solid #e6ebf3;padding:6px 8px;border-radius:999px}.estimateBox{margin-top:13px;padding:13px 14px;border-radius:12px;background:#f0faf4;border:1px solid #cfe7d8}.estimateLabel{font-size:12px;color:#4e6a5a;font-weight:800}.estimateAmount{font-size:22px;font-weight:950;color:#176b45;margin-top:3px}.estimateCalc{font-size:12px;color:#64756c;margin-top:4px}.estimatePending{margin-top:13px;padding:11px 13px;border-radius:11px;background:#f8fafc;border:1px solid #e6ebf3;color:#718096;font-size:12px}.estimateUnavailable{margin-top:13px;padding:11px 13px;border-radius:11px;background:#fff8e6;border:1px solid #ffe09a;color:#795e14;font-size:12px}
     .links{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}a.btn{display:inline-block;text-decoration:none;background:#eef2f7;color:#1f2a3d;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px}
@@ -282,6 +282,15 @@ function resetProfile(){
   document.getElementById('summary').style.display='none';
 }
 function fitClass(v){return v>=80?'':v>=65?'medium':'low'}
+function levelClass(level){return level?.type||'unknown'}
+function levelLabel(level){return level?.label||'Förder-Ebene prüfen'}
+function setVerifiedLevel(i,level){
+  const el=document.getElementById('level-'+i);
+  if(!el||!level)return;
+  el.className='levelBadge '+levelClass(level);
+  el.textContent=levelLabel(level);
+  el.title='Förder-Ebene aus offiziellen Programmdaten · Sicherheit: '+(level.confidence||'unbekannt');
+}
 function money(v){return new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(v)||0)}
 function estimateHtml(e){
   if(!e)return '';
@@ -325,7 +334,10 @@ async function searchFunding(){
     window.lastPrograms=data.programs;results.innerHTML=data.programs.map((p,i)=>`
       <article class="card">
         <div class="row">
-          <div class="title">${esc(p.title)}</div>
+          <div>
+            <div class="title">${esc(p.title)}</div>
+            <div class="levelBadges"><span id="level-${i}" class="levelBadge ${levelClass(p.funding_level)}">${esc(levelLabel(p.funding_level))}</span></div>
+          </div>
           <div class="fit ${fitClass(p.fit)}">${esc(p.fit)} % Match</div>
         </div>
         <div class="meta">
@@ -338,13 +350,13 @@ async function searchFunding(){
         <div class="links"><button class="inspect" onclick="inspectProgram(${i},this)">Programm prüfen</button><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Offizielle Quelle ↗</a></div><div id="detail-${i}" class="detailPanel"></div>
       </article>
     `).join('');
-    if(Number(p.investment)>0)loadTopEstimates(data.programs,p);
+    loadTopDetails(data.programs,p);
   }catch(e){
     status.textContent='';
     results.innerHTML='<div class="card error"><strong>Live-Suche fehlgeschlagen.</strong><br>'+esc(e.message)+'<br><small>FörderRadar zeigt bewusst keine erfundenen Ersatztreffer an.</small></div>';
   }finally{btn.disabled=false}
 }
-async function loadTopEstimates(programs,p){
+async function loadTopDetails(programs,p){
   const limit=Math.min(programs.length,8);
   let cursor=0;
   async function worker(){
@@ -363,10 +375,11 @@ async function loadTopEstimates(programs,p){
         const r=await fetch('/api/program?'+params);
         const d=await r.json();
         if(!r.ok||!d.ok)throw new Error(d.error||'Förderbetrag nicht berechenbar');
-        box.innerHTML=estimateHtml(d.funding_estimate);
+        setVerifiedLevel(i,d.funding_level);
+        box.innerHTML=Number(p.investment)>0?estimateHtml(d.funding_estimate):'';
         program._detail=d;
       }catch(e){
-        box.innerHTML='<div class="estimateUnavailable">Förderbetrag konnte noch nicht ermittelt werden.</div>';
+        box.innerHTML=Number(p.investment)>0?'<div class="estimateUnavailable">Förderbetrag konnte noch nicht ermittelt werden.</div>':'';
       }
     }
   }
@@ -385,6 +398,7 @@ async function inspectProgram(i,btn){
       d=await r.json(); if(!r.ok||!d.ok)throw new Error(d.error||'Detailprüfung fehlgeschlagen');
       p._detail=d;
     }
+    setVerifiedLevel(i,d.funding_level);
     const parts=[
       ['Förderart',d.foerderart],['Fördergebiet',d.foerdergebiet],
       ['Förderberechtigte',d.foerderberechtigte],['Fördergeber',d.foerdergeber],
