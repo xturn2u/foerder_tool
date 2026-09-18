@@ -4,108 +4,248 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>FörderRadar Deutschland</title>
+  <meta name="description" content="Förderprogramme für Unternehmen und Projekte automatisch finden und priorisieren.">
   <style>
-    :root{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#172033;background:#f5f7fb}
-    *{box-sizing:border-box}body{margin:0}.wrap{max-width:1040px;margin:0 auto;padding:34px 20px 70px}
-    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}.brand{font-weight:850;font-size:22px}
-    .badge{font-size:12px;background:#eaf7ef;color:#167245;padding:7px 10px;border-radius:999px;border:1px solid #c9ebd7}
-    .hero{background:white;border:1px solid #e5e9f2;border-radius:22px;padding:30px;box-shadow:0 12px 38px rgba(31,46,80,.08)}
-    h1{font-size:42px;line-height:1.05;margin:0 0 12px;letter-spacing:-1.3px}.sub{font-size:17px;color:#5d6678;max-width:790px;line-height:1.55}
-    .form{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    label{font-size:13px;font-weight:750;color:#586174}input,select{width:100%;margin-top:6px;padding:12px 13px;border:1px solid #dfe4ed;border-radius:11px;background:#fff;font:inherit}
-    .full{grid-column:1/-1}button{border:0;background:#172033;color:#fff;padding:13px 18px;border-radius:11px;font-weight:800;cursor:pointer}
-    button:disabled{opacity:.55;cursor:wait}.info{margin-top:18px;padding:13px 15px;background:#f8fafc;border:1px solid #e6eaf2;border-radius:12px;color:#677185;font-size:13px;line-height:1.45}
-    #status{margin:22px 0 10px;color:#687386}.results{display:grid;gap:14px}.card{background:#fff;border:1px solid #e3e8f0;border-radius:16px;padding:18px}
-    .row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.title{font-weight:800;font-size:18px;line-height:1.35}.fit{white-space:nowrap;font-weight:850;font-size:13px;background:#edf8f1;color:#147147;padding:7px 9px;border-radius:999px}
-    .meta{margin-top:10px;display:grid;gap:7px;font-size:14px;color:#5d6678}.meta strong{color:#273044}.links{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
-    a.btn{display:inline-block;text-decoration:none;background:#eef2f7;color:#1f2a3d;padding:9px 11px;border-radius:9px;font-weight:750;font-size:13px}
-    .warning{background:#fff8e6;border-color:#ffe09a;color:#755a00}.error{background:#fff0f0;border-color:#ffc9c9;color:#8b1d1d}
-    footer{margin-top:24px;color:#7a8496;font-size:12px;text-align:center;line-height:1.5}
-    @media(max-width:700px){h1{font-size:34px}.form{grid-template-columns:1fr}.full{grid-column:auto}.hero{padding:22px}.row{flex-direction:column}.fit{align-self:flex-start}}
+    :root{
+      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+      color:#172033;background:#f4f7fb;--line:#e3e8f0;--muted:#647084;--ink:#172033;
+      --green:#157347;--greenbg:#edf8f1;--blue:#2563eb;--bluebg:#eff6ff;--warn:#8a6200;--warnbg:#fff8e6
+    }
+    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#f8fbff 0,#f4f7fb 320px)}
+    .wrap{max-width:1160px;margin:0 auto;padding:28px 20px 72px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.brand{font-weight:900;font-size:22px;letter-spacing:-.4px}
+    .badge{font-size:12px;background:#eaf7ef;color:#167245;padding:7px 10px;border-radius:999px;border:1px solid #c9ebd7;font-weight:800}
+    .hero{background:#fff;border:1px solid var(--line);border-radius:24px;padding:30px;box-shadow:0 14px 42px rgba(31,46,80,.08)}
+    h1{font-size:42px;line-height:1.05;margin:0 0 12px;letter-spacing:-1.5px}.sub{font-size:17px;color:#5d6678;max-width:840px;line-height:1.55;margin:0}
+    .steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.step{font-size:12px;font-weight:800;padding:8px 10px;border-radius:999px;background:#f4f6fa;color:#5c6678}
+    .step.active{background:#172033;color:white}
+    .section{margin-top:24px;padding-top:22px;border-top:1px solid #edf0f5}.section h2{font-size:16px;margin:0 0 14px}
+    .form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+    .full{grid-column:1/-1}.thirds{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+    label{font-size:13px;font-weight:800;color:#586174;display:block}
+    input,select{width:100%;margin-top:6px;padding:12px 13px;border:1px solid #dfe4ed;border-radius:11px;background:#fff;font:inherit;color:#172033;outline:none}
+    input:focus,select:focus{border-color:#9db5ed;box-shadow:0 0 0 3px #eaf0ff}
+    .topics{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .topic{position:relative}.topic input{position:absolute;opacity:0;pointer-events:none}
+    .topic span{display:block;padding:9px 12px;border:1px solid #dfe4ed;border-radius:999px;background:#fff;font-size:13px;font-weight:750;cursor:pointer;color:#526074}
+    .topic input:checked+span{background:#172033;border-color:#172033;color:#fff}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:17px}
+    button{border:0;background:#172033;color:white;padding:13px 18px;border-radius:11px;font-weight:850;cursor:pointer;font:inherit}
+    button.secondary{background:#eef2f7;color:#263349}button:disabled{opacity:.55;cursor:wait}
+    .small{font-size:12px;color:#778296}.info{margin-top:18px;padding:13px 15px;background:#f8fafc;border:1px solid #e6eaf2;border-radius:12px;color:#677185;font-size:13px;line-height:1.5}
+    .summary{display:none;margin-top:18px;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#f8fafc;border:1px solid var(--line);border-radius:13px;padding:14px}
+    .stat .n{font-size:22px;font-weight:900}.stat .l{font-size:12px;color:#6c778a;margin-top:3px}
+    #status{margin:22px 0 10px;color:#687386}.results{display:grid;gap:14px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:19px;box-shadow:0 4px 16px rgba(31,46,80,.035)}
+    .row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.title{font-weight:850;font-size:18px;line-height:1.35}
+    .fit{white-space:nowrap;font-weight:900;font-size:13px;background:var(--greenbg);color:var(--green);padding:7px 9px;border-radius:999px}
+    .fit.medium{background:var(--bluebg);color:var(--blue)}.fit.low{background:#f3f4f6;color:#667085}
+    .meta{margin-top:11px;display:grid;gap:7px;font-size:14px;color:#5d6678;line-height:1.45}.meta strong{color:#273044}
+    .reasons{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.reason{font-size:12px;background:#f4f7fb;color:#506078;border:1px solid #e6ebf3;padding:6px 8px;border-radius:999px}
+    .links{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}a.btn{display:inline-block;text-decoration:none;background:#eef2f7;color:#1f2a3d;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px}
+    .warning{background:var(--warnbg);border-color:#ffe09a;color:#755a00}.error{background:#fff0f0;border-color:#ffc9c9;color:#8b1d1d}
+    .warnings{display:grid;gap:8px;margin:12px 0}.warn{background:var(--warnbg);border:1px solid #ffe09a;color:#795e14;padding:10px 12px;border-radius:10px;font-size:12px}
+    footer{margin-top:26px;color:#7a8496;font-size:12px;text-align:center;line-height:1.5}
+    @media(max-width:760px){
+      h1{font-size:34px}.form,.thirds{grid-template-columns:1fr}.full{grid-column:auto}.hero{padding:22px}.row{flex-direction:column}.fit{align-self:flex-start}.summary{grid-template-columns:1fr 1fr}
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
       <div class="brand">FörderRadar Deutschland</div>
-      <div class="badge">LIVE-MVP</div>
+      <div class="badge">MVP 0.2</div>
     </div>
+
     <section class="hero">
-      <h1>Finde Förderprogramme, die zu deinem Vorhaben passen.</h1>
-      <p class="sub">Erster funktionsfähiger MVP mit Live-Suche in der offiziellen Förderdatenbank des Bundes. Der Fit-Wert dient nur zur Sortierung und ist keine Förderzusage.</p>
-      <div class="form">
-        <div>
-          <label>Bundesland
-            <select id="state">
-              <option>Bayern</option><option>Baden-Württemberg</option><option>Berlin</option><option>Brandenburg</option>
-              <option>Bremen</option><option>Hamburg</option><option>Hessen</option><option>Mecklenburg-Vorpommern</option>
-              <option>Niedersachsen</option><option>Nordrhein-Westfalen</option><option>Rheinland-Pfalz</option><option>Saarland</option>
-              <option>Sachsen</option><option>Sachsen-Anhalt</option><option>Schleswig-Holstein</option><option>Thüringen</option>
-            </select>
-          </label>
-        </div>
-        <div>
-          <label>Zielgruppe
-            <select id="target">
-              <option>Unternehmen</option><option>Privatperson</option><option>Gründer</option><option>Kommune</option>
-              <option>Verein</option><option>Hochschule</option><option>Forschungseinrichtung</option><option>Öffentliche Einrichtung</option>
-            </select>
-          </label>
-        </div>
-        <div class="full">
-          <label>Was planst du?
-            <input id="q" value="Digitalisierung Energieeffizienz" placeholder="z. B. Wärmepumpe, Digitalisierung, KI, neue Maschine">
-          </label>
-        </div>
-        <div class="full"><button id="searchBtn" onclick="searchFunding()">Förderungen suchen</button></div>
+      <h1>Aus deinem Vorhaben wird ein Förderprofil.</h1>
+      <p class="sub">Beschreibe dein Projekt einmal. FörderRadar durchsucht mehrere Themen parallel, priorisiert passende Programme und zeigt transparent, warum ein Treffer zu deinem Profil passen könnte.</p>
+
+      <div class="steps">
+        <div class="step active">1 · Profil</div>
+        <div class="step">2 · Matching</div>
+        <div class="step">3 · Prüfung</div>
+        <div class="step">4 · Antrag</div>
       </div>
-      <div class="info">Datenquelle: Förderdatenbank des Bundes. Der aktuelle MVP liest Live-Suchergebnisse. Im nächsten Ausbauschritt importieren wir den vollständigen XML-Datenbestand und berechnen Eligibility/Fristen strukturierter.</div>
+
+      <div class="section">
+        <h2>Unternehmens- und Projektprofil</h2>
+        <div class="form">
+          <div>
+            <label>Bundesland
+              <select id="state">
+                <option>Bayern</option><option>Baden-Württemberg</option><option>Berlin</option><option>Brandenburg</option>
+                <option>Bremen</option><option>Hamburg</option><option>Hessen</option><option>Mecklenburg-Vorpommern</option>
+                <option>Niedersachsen</option><option>Nordrhein-Westfalen</option><option>Rheinland-Pfalz</option><option>Saarland</option>
+                <option>Sachsen</option><option>Sachsen-Anhalt</option><option>Schleswig-Holstein</option><option>Thüringen</option>
+              </select>
+            </label>
+          </div>
+          <div>
+            <label>Zielgruppe
+              <select id="target">
+                <option>Unternehmen</option><option>Privatperson</option><option>Gründer</option><option>Kommune</option>
+                <option>Verein</option><option>Hochschule</option><option>Forschungseinrichtung</option><option>Öffentliche Einrichtung</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="thirds">
+            <div>
+              <label>Unternehmensgröße
+                <select id="size">
+                  <option value="">Nicht angegeben</option>
+                  <option>1–9 Mitarbeitende</option><option>10–49 Mitarbeitende</option><option>50–249 Mitarbeitende</option><option>250+ Mitarbeitende</option>
+                </select>
+              </label>
+            </div>
+            <div>
+              <label>Investitionssumme (€)
+                <input id="investment" inputmode="numeric" type="number" min="0" step="1000" placeholder="z. B. 100000">
+              </label>
+            </div>
+            <div>
+              <label>Geplanter Projektstart
+                <input id="start" type="month">
+              </label>
+            </div>
+          </div>
+
+          <div class="full">
+            <label>Themen auswählen</label>
+            <div class="topics" id="topics">
+              <label class="topic"><input type="checkbox" value="Digitalisierung"><span>Digitalisierung</span></label>
+              <label class="topic"><input type="checkbox" value="Künstliche Intelligenz"><span>KI</span></label>
+              <label class="topic"><input type="checkbox" value="Energieeffizienz"><span>Energieeffizienz</span></label>
+              <label class="topic"><input type="checkbox" value="Erneuerbare Energien"><span>Erneuerbare Energien</span></label>
+              <label class="topic"><input type="checkbox" value="Maschinen Investition"><span>Maschinen / Investition</span></label>
+              <label class="topic"><input type="checkbox" value="Forschung Innovation"><span>Forschung & Innovation</span></label>
+              <label class="topic"><input type="checkbox" value="Weiterbildung"><span>Weiterbildung</span></label>
+              <label class="topic"><input type="checkbox" value="Gründung"><span>Gründung</span></label>
+            </div>
+          </div>
+
+          <div class="full">
+            <label>Vorhaben in eigenen Worten
+              <input id="q" value="Digitalisierung und Energieeffizienz im Unternehmen" placeholder="z. B. Neue CNC-Maschine, Energiemanagement und KI-gestützte Produktionsplanung">
+            </label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="searchBtn" onclick="searchFunding()">Förderprofil analysieren</button>
+          <button class="secondary" onclick="resetProfile()">Profil zurücksetzen</button>
+          <span class="small">Das Profil wird nur lokal in deinem Browser gespeichert.</span>
+        </div>
+
+        <div class="info">Datenquelle: offizielle Förderdatenbank des Bundes. Die aktuelle Version nutzt Live-Suchergebnisse. Förderhöhe, Kumulierbarkeit, Unternehmensgrößenregeln und konkrete Fristen werden noch nicht abschließend bewertet.</div>
+
+        <div id="summary" class="summary">
+          <div class="stat"><div class="n" id="statPrograms">0</div><div class="l">Programme geladen</div></div>
+          <div class="stat"><div class="n" id="statStrong">0</div><div class="l">starke Matches ≥ 80 %</div></div>
+          <div class="stat"><div class="n" id="statTerms">0</div><div class="l">Suchpfade</div></div>
+          <div class="stat"><div class="n" id="statActive">0</div><div class="l">aktuell gelistet</div></div>
+        </div>
+      </div>
     </section>
 
     <div id="status"></div>
+    <div id="warnings" class="warnings"></div>
     <div id="results" class="results"></div>
-    <footer>FörderRadar Deutschland · Entwicklungsstand · keine Rechts-, Steuer- oder Förderberatung · maßgeblich sind die offiziellen Programmbedingungen.</footer>
+
+    <footer>FörderRadar Deutschland · Entwicklungsstand · keine Rechts-, Steuer- oder Förderberatung · maßgeblich sind ausschließlich die offiziellen Programmbedingungen.</footer>
   </div>
 
 <script>
+const PROFILE_KEY='foerderradar-profile-v02';
 function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-async function searchFunding(){
-  const btn=document.getElementById('searchBtn');
-  const status=document.getElementById('status');
-  const results=document.getElementById('results');
-  const q=document.getElementById('q').value.trim();
-  const state=document.getElementById('state').value;
-  const target=document.getElementById('target').value;
-  btn.disabled=true; results.innerHTML=''; status.className=''; status.textContent='Suche in der Förderdatenbank …';
+function getTopics(){return [...document.querySelectorAll('#topics input:checked')].map(x=>x.value)}
+function profile(){
+  return {
+    state:document.getElementById('state').value,
+    target:document.getElementById('target').value,
+    size:document.getElementById('size').value,
+    investment:document.getElementById('investment').value,
+    start:document.getElementById('start').value,
+    q:document.getElementById('q').value.trim(),
+    topics:getTopics()
+  }
+}
+function saveProfile(){localStorage.setItem(PROFILE_KEY,JSON.stringify(profile()))}
+function loadProfile(){
   try{
-    const r=await fetch('/api/search?'+new URLSearchParams({q,state,target}));
+    const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null'); if(!p)return;
+    ['state','target','size','investment','start','q'].forEach(id=>{if(p[id]!==undefined&&document.getElementById(id))document.getElementById(id).value=p[id]});
+    document.querySelectorAll('#topics input').forEach(x=>x.checked=(p.topics||[]).includes(x.value));
+  }catch{}
+}
+function resetProfile(){
+  localStorage.removeItem(PROFILE_KEY);
+  document.getElementById('state').value='Bayern';
+  document.getElementById('target').value='Unternehmen';
+  document.getElementById('size').value='';
+  document.getElementById('investment').value='';
+  document.getElementById('start').value='';
+  document.getElementById('q').value='';
+  document.querySelectorAll('#topics input').forEach(x=>x.checked=false);
+  document.getElementById('results').innerHTML='';
+  document.getElementById('warnings').innerHTML='';
+  document.getElementById('status').textContent='';
+  document.getElementById('summary').style.display='none';
+}
+function fitClass(v){return v>=80?'':v>=65?'medium':'low'}
+async function searchFunding(){
+  const btn=document.getElementById('searchBtn'),status=document.getElementById('status'),results=document.getElementById('results'),warnings=document.getElementById('warnings');
+  const p=profile(); saveProfile();
+  btn.disabled=true;results.innerHTML='';warnings.innerHTML='';status.textContent='Mehrere Förderpfade werden parallel geprüft …';
+  document.getElementById('summary').style.display='none';
+  try{
+    const params=new URLSearchParams({q:p.q,state:p.state,target:p.target,size:p.size,investment:p.investment,start:p.start,topics:p.topics.join(',')});
+    const r=await fetch('/api/search?'+params);
     const data=await r.json();
-    if(!r.ok || !data.ok) throw new Error(data.error||'Suche fehlgeschlagen');
-    const count=data.total_hint ? ' · '+data.total_hint+' Treffer in der Quelle' : '';
-    status.textContent=(data.programs.length ? data.programs.length+' Programme geladen' : 'Keine Programme erkannt')+count;
+    if(!r.ok||!data.ok)throw new Error(data.error||'Suche fehlgeschlagen');
+
+    const active=data.programs.filter(x=>!/nicht mehr möglich/i.test(x.status)).length;
+    const strong=data.programs.filter(x=>x.fit>=80).length;
+    document.getElementById('statPrograms').textContent=data.programs.length;
+    document.getElementById('statStrong').textContent=strong;
+    document.getElementById('statTerms').textContent=data.terms.length;
+    document.getElementById('statActive').textContent=active;
+    document.getElementById('summary').style.display='grid';
+
+    status.textContent=data.programs.length
+      ? data.programs.length+' priorisierte Programme aus '+data.terms.length+' Suchpfaden'
+      : 'Keine Programme erkannt';
+
+    warnings.innerHTML=(data.warnings||[]).map(w=>'<div class="warn">'+esc(w)+'</div>').join('');
+
     if(!data.programs.length){
-      results.innerHTML='<div class="card warning">Für diese Kombination wurden im MVP keine Treffer erkannt. Versuche einen allgemeineren Suchbegriff.</div>';
+      results.innerHTML='<div class="card warning">Für dieses Profil wurden im MVP keine Treffer erkannt. Wähle weniger Themen oder formuliere das Vorhaben allgemeiner.</div>';
       return;
     }
+
     results.innerHTML=data.programs.map(p=>`
       <article class="card">
         <div class="row">
           <div class="title">${esc(p.title)}</div>
-          <div class="fit">${esc(p.fit)} % Fit</div>
+          <div class="fit ${fitClass(p.fit)}">${esc(p.fit)} % Match</div>
         </div>
         <div class="meta">
           ${p.who?'<div><strong>Förderberechtigt:</strong> '+esc(p.who)+'</div>':''}
           ${p.what?'<div><strong>Förderbereich:</strong> '+esc(p.what)+'</div>':''}
           <div><strong>Status:</strong> ${esc(p.status)}</div>
         </div>
+        ${p.reasons?.length?'<div class="reasons">'+p.reasons.map(r=>'<span class="reason">'+esc(r)+'</span>').join('')+'</div>':''}
         <div class="links"><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Offizielle Programmdetails ↗</a></div>
       </article>
     `).join('');
   }catch(e){
     status.textContent='';
-    results.innerHTML='<div class="card error"><strong>Live-Suche fehlgeschlagen.</strong><br>'+esc(e.message)+'<br><small>Der Prototyp zeigt bewusst keinen Fake-Datensatz an.</small></div>';
+    results.innerHTML='<div class="card error"><strong>Live-Suche fehlgeschlagen.</strong><br>'+esc(e.message)+'<br><small>FörderRadar zeigt bewusst keine erfundenen Ersatztreffer an.</small></div>';
   }finally{btn.disabled=false}
 }
+loadProfile();
 </script>
 </body>
 </html>
