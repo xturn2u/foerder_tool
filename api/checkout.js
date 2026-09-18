@@ -1,8 +1,8 @@
-const PRICE_CENTS = 2900;
+const PRICE_CENTS = 990;
 const DEV_COUPON = {
-  code: "ENTWICKLUNG29",
+  code: "ENTWICKLUNG10",
   label: "Entwicklungs-Gutschein",
-  discount_cents: 2900,
+  discount_cents: 990,
   active: true,
   development_only: true
 };
@@ -17,6 +17,7 @@ export default async function handler(req, res) {
 
   const code = normalizeCode(req.query.code || "");
   const redeem = String(req.query.redeem || "") === "1";
+  const programUrl = String(req.query.program_url || "").trim();
 
   const validCoupon = DEV_COUPON.active && code === DEV_COUPON.code;
   const discount = validCoupon ? Math.min(PRICE_CENTS, DEV_COUPON.discount_cents) : 0;
@@ -24,10 +25,12 @@ export default async function handler(req, res) {
 
   const response = {
     ok: true,
+    product: "Antragshilfe",
     currency: "EUR",
     regular_price_cents: PRICE_CENTS,
     discount_cents: discount,
     total_cents: total,
+    program_url: programUrl || null,
     coupon: validCoupon ? {
       valid: true,
       code: DEV_COUPON.code,
@@ -50,9 +53,12 @@ export default async function handler(req, res) {
   };
 
   if (redeem) {
-    if (validCoupon && total === 0) {
+    if (!programUrl) {
+      response.status = "invalid_request";
+      response.message = "Kein Förderprogramm ausgewählt.";
+    } else if (validCoupon && total === 0) {
       response.status = "granted";
-      response.message = "FörderCheck im Entwicklungsmodus kostenlos freigeschaltet.";
+      response.message = "Antragshilfe im Entwicklungsmodus kostenlos freigeschaltet.";
     } else {
       response.status = "payment_required";
       response.message = "Für diesen Betrag ist später eine Zahlungsabwicklung erforderlich.";
