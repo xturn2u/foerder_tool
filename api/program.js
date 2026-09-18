@@ -31,6 +31,54 @@ function norm(s = "") {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+
+const LAND_NAMES = [
+  "Baden-Württemberg","Bayern","Berlin","Brandenburg","Bremen","Hamburg","Hessen",
+  "Mecklenburg-Vorpommern","Niedersachsen","Nordrhein-Westfalen","Rheinland-Pfalz",
+  "Saarland","Sachsen","Sachsen-Anhalt","Schleswig-Holstein","Thüringen"
+];
+
+function classifyFundingLevel({title="", foerdergeber="", foerdergebiet="", text=""}) {
+  const hay = norm([title, foerdergeber, foerdergebiet, text.slice(0, 2500)].join(" "));
+
+  if (/europaische union|europaische kommission|eu-kommission|eu-fonds|efre|esf\+|interreg|horizont europa|eafrd/.test(hay)) {
+    return {type:"eu", label:"EU-Förderung", region:"Europäische Union", confidence:"hoch", evidence:foerdergeber || foerdergebiet || title};
+  }
+
+  const municipalPatterns = [
+    /landeshauptstadt\s+([a-zäöüß\- ]{2,40})/i,
+    /stadt\s+([a-zäöüß\- ]{2,40})/i,
+    /gemeinde\s+([a-zäöüß\- ]{2,40})/i,
+    /landkreis\s+([a-zäöüß\- ]{2,40})/i,
+    /kreis\s+([a-zäöüß\- ]{2,40})/i,
+    /bezirksamt\s+([a-zäöüß\- ]{2,40})/i
+  ];
+  const municipalSource = [foerdergeber, title].join(" ");
+  for (const re of municipalPatterns) {
+    const m = municipalSource.match(re);
+    if (m) {
+      const place = m[1].replace(/\s+(fördert|förderung|programm|ministerium).*$/i,"").trim();
+      return {type:"municipal", label:"Kommunale Förderung" + (place ? " · " + place : ""), region:place || "", confidence:"hoch", evidence:foerdergeber || title};
+    }
+  }
+
+  for (const land of LAND_NAMES) {
+    const n = norm(land);
+    const giverHasLand = norm(foerdergeber).includes(n);
+    const areaHasLand = norm(foerdergebiet).includes(n);
+    const titleHasLand = norm(title).includes(n);
+    if (giverHasLand || areaHasLand || titleHasLand) {
+      return {type:"state", label:"Landesförderung · " + land, region:land, confidence:giverHasLand ? "hoch" : "mittel", evidence:foerdergeber || foerdergebiet || title};
+    }
+  }
+
+  if (/bundesministerium|bundesamt|bundesanstalt|bundesrepublik deutschland|bundesweit|kfw|bafa/.test(hay)) {
+    return {type:"federal", label:"Bundesförderung", region:"Deutschland", confidence:"hoch", evidence:foerdergeber || foerdergebiet || title};
+  }
+
+  return {type:"unknown", label:"Förder-Ebene prüfen", region:"", confidence:"niedrig", evidence:foerdergeber || foerdergebiet || title};
+}
+
 function moneyToNumber(raw = "") {
   const v = raw.replace(/\./g, "").replace(",", ".").replace(/[^0-9.]/g, "");
   const n = Number(v);
@@ -262,6 +310,7 @@ export default async function handler(req, res) {
     const uniqueDates = [...new Set(dateMatches)].slice(0, 8);
     const deadlineWarning = /Antragstellung .*nicht mehr möglich|musste .* bis zum|Portal .*geschlossen|Deadline .*geschlossen|nicht mehr berücksichtigt|bereits ausgeschöpft/i.test(text);
     const fundingEstimate = estimateFunding(text, investment, size, target);
+    const fundingLevel = classifyFundingLevel({title, foerdergeber, foerdergebiet, text});
 
     return res.status(200).json({
       ok:true,
@@ -276,6 +325,7 @@ export default async function handler(req, res) {
       dates: uniqueDates,
       deadline_warning: deadlineWarning,
       funding_estimate: fundingEstimate,
+      funding_level: fundingLevel,
       source_url:url,
       attribution:"Quelle: Förderdatenbank des Bundes. Förderbetrag ist eine technische Schätzung auf Basis erkannter Förderquote/Höchstbeträge und keine Förderzusage."
     });
