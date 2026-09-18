@@ -1,244 +1,210 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>FörderRadar Deutschland</title>
-  <meta name="description" content="Förderprogramme für Unternehmen und Projekte automatisch finden und priorisieren.">
-  <style>
-    :root{
-      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-      color:#172033;background:#f4f7fb;--line:#e3e8f0;--muted:#647084;--ink:#172033;
-      --green:#157347;--greenbg:#edf8f1;--blue:#2563eb;--bluebg:#eff6ff;--warn:#8a6200;--warnbg:#fff8e6
-    }
-    *{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#f8fbff 0,#f4f7fb 320px)}
-    .wrap{max-width:1160px;margin:0 auto;padding:28px 20px 72px}
-    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.brand{font-weight:900;font-size:22px;letter-spacing:-.4px}
-    .badge{font-size:12px;background:#eaf7ef;color:#167245;padding:7px 10px;border-radius:999px;border:1px solid #c9ebd7;font-weight:800}
-    .hero{background:#fff;border:1px solid var(--line);border-radius:24px;padding:30px;box-shadow:0 14px 42px rgba(31,46,80,.08)}
-    h1{font-size:42px;line-height:1.05;margin:0 0 12px;letter-spacing:-1.5px}.sub{font-size:17px;color:#5d6678;max-width:840px;line-height:1.55;margin:0}
-    .steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.step{font-size:12px;font-weight:800;padding:8px 10px;border-radius:999px;background:#f4f6fa;color:#5c6678}
-    .step.active{background:#172033;color:white}
-    .section{margin-top:24px;padding-top:22px;border-top:1px solid #edf0f5}.section h2{font-size:16px;margin:0 0 14px}
-    .form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
-    .full{grid-column:1/-1}.thirds{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.conditional-hidden{display:none!important}.context-note{grid-column:1/-1;margin-top:-2px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid #e6eaf2;color:#667085;font-size:12px;line-height:1.45}
-    label{font-size:13px;font-weight:800;color:#586174;display:block}
-    input,select{width:100%;margin-top:6px;padding:12px 13px;border:1px solid #dfe4ed;border-radius:11px;background:#fff;font:inherit;color:#172033;outline:none}
-    input:focus,select:focus{border-color:#9db5ed;box-shadow:0 0 0 3px #eaf0ff}
-    .topics{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-    .topic{position:relative}.topic input{position:absolute;opacity:0;pointer-events:none}
-    .topic span{display:block;padding:9px 12px;border:1px solid #dfe4ed;border-radius:999px;background:#fff;font-size:13px;font-weight:750;cursor:pointer;color:#526074}
-    .topic input:checked+span{background:#172033;border-color:#172033;color:#fff}
-    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:17px}
-    button{border:0;background:#172033;color:white;padding:13px 18px;border-radius:11px;font-weight:850;cursor:pointer;font:inherit}
-    button.secondary{background:#eef2f7;color:#263349}button:disabled{opacity:.55;cursor:wait}
-    .small{font-size:12px;color:#778296}.info{margin-top:18px;padding:13px 15px;background:#f8fafc;border:1px solid #e6eaf2;border-radius:12px;color:#677185;font-size:13px;line-height:1.5}
-    .summary{display:none;margin-top:18px;grid-template-columns:repeat(4,1fr);gap:10px}.resultsToolbar{display:none;margin:20px 0 10px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:13px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.resultsToolbar.show{display:flex}.resultsToolbar .left{font-size:13px;color:#667085;font-weight:750}.resultsToolbar .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.resultsToolbar select{width:auto;min-width:210px;margin:0;padding:9px 11px}.stat{background:#f8fafc;border:1px solid var(--line);border-radius:13px;padding:14px}
-    .stat .n{font-size:22px;font-weight:900}.stat .l{font-size:12px;color:#6c778a;margin-top:3px}
-    #status{margin:22px 0 10px;color:#687386}.results{display:grid;gap:14px}
-    .card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:19px;box-shadow:0 4px 16px rgba(31,46,80,.035)}
-    .row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.title{font-weight:850;font-size:18px;line-height:1.35}
-    .fit{white-space:nowrap;font-weight:900;font-size:13px;background:var(--greenbg);color:var(--green);padding:7px 9px;border-radius:999px}
-    .fit.medium{background:var(--bluebg);color:var(--blue)}.fit.low{background:#f3f4f6;color:#667085}.levelBadges{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.levelBadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:850;padding:6px 9px;border-radius:999px;border:1px solid #dde4ee;background:#f6f8fb;color:#536175}.levelBadge.federal{background:#eff6ff;border-color:#cfe0ff;color:#1f5fbf}.levelBadge.state{background:#eef9f2;border-color:#cfead8;color:#1f7148}.levelBadge.municipal{background:#fff7e8;border-color:#f5dca6;color:#8a5c00}.levelBadge.eu,.levelBadge.eu_state{background:#f4efff;border-color:#ded0ff;color:#6941c6}.levelBadge.unknown{background:#f6f7f9;color:#6b7280}
-    .meta{margin-top:11px;display:grid;gap:7px;font-size:14px;color:#5d6678;line-height:1.45}.meta strong{color:#273044}
-    .reasons{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.reason{font-size:12px;background:#f4f7fb;color:#506078;border:1px solid #e6ebf3;padding:6px 8px;border-radius:999px}.estimateBox{margin-top:13px;padding:13px 14px;border-radius:12px;background:#f0faf4;border:1px solid #cfe7d8}.estimateLabel{font-size:12px;color:#4e6a5a;font-weight:800}.estimateAmount{font-size:22px;font-weight:950;color:#176b45;margin-top:3px}.estimateCalc{font-size:12px;color:#64756c;margin-top:4px}.estimatePending{margin-top:13px;padding:11px 13px;border-radius:11px;background:#f8fafc;border:1px solid #e6ebf3;color:#718096;font-size:12px}.estimateUnavailable{margin-top:13px;padding:11px 13px;border-radius:11px;background:#fff8e6;border:1px solid #ffe09a;color:#795e14;font-size:12px}
-    .links{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}a.btn{display:inline-block;text-decoration:none;background:#eef2f7;color:#1f2a3d;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px}
-    .warning{background:var(--warnbg);border-color:#ffe09a;color:#755a00}.error{background:#fff0f0;border-color:#ffc9c9;color:#8b1d1d}
-    .devCoupon{margin:0 0 14px;padding:7px 10px;border-radius:10px;background:#eef8ff;border:1px solid #cfe6ff;display:flex;justify-content:center;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;line-height:1.2}.devCoupon strong{color:#1f5fbf}.couponCode{display:inline-block;padding:3px 6px;border-radius:6px;background:#fff;border:1px dashed #9bc4ef;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:900;letter-spacing:.3px;color:#174f91}.devCoupon button{padding:5px 8px;border-radius:7px;background:#e3eef9;color:#184e86;font-size:11px}
-    .applicationHelp{display:none;margin-top:14px;padding:16px;background:#f8fafc;border:1px solid #e4eaf2;border-radius:12px}.applicationHelp.open{display:block}.assistHead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.assistTitle{font-size:16px;font-weight:900}.assistSub{margin-top:3px;color:#667085;font-size:12px;line-height:1.45}.assistPrice{text-align:right;white-space:nowrap}.assistPrice .old{font-size:12px;color:#98a2b3;text-decoration:line-through}.assistPrice .now{font-size:22px;font-weight:950}.assistList{display:grid;gap:7px;margin:13px 0;font-size:13px;color:#536175}.assistList div:before{content:"✓";font-weight:900;color:#157347;margin-right:7px}.couponRow{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:12px}.couponRow input{margin:0}.couponStatus{margin-top:8px;font-size:12px;color:#667085}.couponStatus.ok{color:#157347}.couponStatus.bad{color:#b42318}.assistActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:13px}.assistResult{display:grid;gap:12px}.assistSection{background:#fff;border:1px solid #e5eaf1;border-radius:11px;padding:12px 13px}.assistSection h4{margin:0 0 7px;font-size:13px}.assistSection p{margin:0;color:#5d6678;font-size:13px;line-height:1.5}.assistLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.assistLinks a{display:inline-block;text-decoration:none;background:#172033;color:#fff;padding:9px 11px;border-radius:9px;font-weight:800;font-size:12px}.assistLinks a.secondaryLink{background:#eef2f7;color:#263349}.verifyBadge{display:inline-flex;align-items:center;padding:6px 9px;border-radius:999px;background:#edf8f1;border:1px solid #cfe7d8;color:#176b45;font-size:12px;font-weight:900;margin-bottom:10px}.verifyBadge.fdbOnly{background:#fff8e6;border-color:#ffe09a;color:#795e14}.criteriaList{display:grid;gap:7px}.criteriaRow{display:grid;grid-template-columns:16px 130px 1fr;gap:7px;align-items:start;font-size:12px;color:#596679}.criteriaDot{font-weight:950}.criteriaDot.pass{color:#157347}.criteriaDot.open{color:#b7791f}.riskBox{padding:9px 10px;border-radius:9px;background:#fff8e6;border:1px solid #ffe09a;color:#795e14;font-size:12px;line-height:1.45;margin-top:7px}.riskBox.critical{background:#fff0f0;border-color:#ffc9c9;color:#8b1d1d}.docList{margin:0;padding-left:18px;color:#596679;font-size:13px;line-height:1.6}.draftBox{white-space:pre-wrap;background:#f8fafc;border:1px solid #e6ebf3;border-radius:9px;padding:10px;font-size:12px;color:#4b5565;line-height:1.5}.sourceList{display:grid;gap:5px;margin-top:8px}.sourceList a{font-size:12px;color:#2563eb;text-decoration:none}.premiumIntro{margin-bottom:12px;color:#596679;font-size:13px;line-height:1.5}
-    .lockedPremium{display:inline-flex;align-items:center;gap:6px;padding:9px 11px;border-radius:9px;background:#172033;border:0;color:#fff;font-size:12px;font-weight:800;cursor:pointer}
-    .paywallOverlay{display:none;position:fixed;inset:0;background:rgba(17,24,39,.58);z-index:9999;align-items:center;justify-content:center;padding:18px}.paywallOverlay.open{display:flex}.paywallModal{width:min(560px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.25);padding:22px;position:relative}.paywallClose{position:absolute;right:14px;top:12px;background:#f1f4f8;color:#475467;padding:7px 10px;border-radius:999px}.paywallEyebrow{font-size:12px;font-weight:900;color:#2563eb;margin-bottom:6px}.paywallTitle{font-size:24px;font-weight:950;line-height:1.15;padding-right:42px}.paywallSub{font-size:13px;color:#667085;line-height:1.5;margin-top:7px}.paywallScope{margin-top:14px;padding:11px 12px;border-radius:10px;background:#eff6ff;border:1px solid #cfe0ff;color:#1f5fbf;font-size:13px;font-weight:800}.paywallPrice{display:flex;align-items:end;gap:8px;margin-top:16px}.paywallPrice .now{font-size:30px;font-weight:950}.paywallPrice .old{font-size:14px;color:#98a2b3;text-decoration:line-through;margin-bottom:4px}.paywallFeatures{display:grid;gap:8px;margin:16px 0;color:#536175;font-size:13px}.paywallFeatures div:before{content:"✓";color:#157347;font-weight:950;margin-right:8px}.paywallActions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}.paywallActions button{flex:1}.paywallHint{font-size:11px;color:#98a2b3;margin-top:10px;line-height:1.4}
-
-    .warnings{display:grid;gap:8px;margin:12px 0}.warn{background:var(--warnbg);border:1px solid #ffe09a;color:#795e14;padding:10px 12px;border-radius:10px;font-size:12px}
-    .inspect{border:0;background:#172033;color:#fff;padding:9px 11px;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer}.detailPanel{display:none;margin-top:14px;padding:14px;background:#f8fafc;border:1px solid #e4eaf2;border-radius:12px}.detailPanel.open{display:block}.detailGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:13px;color:#596679}.detailGrid b{color:#273044}.detailFull{grid-column:1/-1}.deadline{margin-top:10px;padding:9px 10px;border-radius:9px;background:#fff2f2;border:1px solid #ffcaca;color:#8b1d1d;font-size:12px;font-weight:750}footer{margin-top:26px;color:#7a8496;font-size:12px;text-align:center;line-height:1.5}
-    @media(max-width:760px){
-      h1{font-size:34px}.form,.thirds{grid-template-columns:1fr}.full{grid-column:auto}.hero{padding:22px}.row{flex-direction:column}.fit{align-self:flex-start}.summary{grid-template-columns:1fr 1fr}
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FörderRadar Deutschland</title>
+<meta name="description" content="Förderprogramme für Unternehmen, Privatpersonen und Projekte schnell finden und persönlich prüfen.">
+<style>
+:root{
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:#10243d;background:#f7fafc;
+  --navy:#082c4f;--navy2:#0d3c68;--teal:#12ad99;--blue:#2369e8;
+  --green:#168a60;--greenbg:#eaf8f1;--line:#dfe7ef;--muted:#6c7b8e;
+  --panel:#fff;--soft:#f2f6fa;--warning:#8a6200;--warningbg:#fff8e6;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:linear-gradient(180deg,#f9fcff 0,#f5f9fc 52%,#fff 100%);color:#10243d}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.devCoupon{
+  background:#0f2d46;color:#eaf5fb;padding:8px 22px;display:flex;align-items:center;
+  justify-content:center;gap:10px;font-size:12px;min-height:38px
+}
+.devCoupon strong{color:#fff}.couponCode{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:900;color:#dffbf5}
+.devCoupon button{border:1px solid rgba(255,255,255,.45);background:transparent;color:white;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:800}
+.navWrap{background:rgba(255,255,255,.96);border-bottom:1px solid #e8eef4;position:sticky;top:0;z-index:20;backdrop-filter:blur(18px)}
+.nav{max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:950;font-size:22px;letter-spacing:-.6px;color:#092c4d}
+.brandMark{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0c4f88,#12ad99);display:grid;place-items:center;color:#fff;box-shadow:0 8px 22px rgba(9,58,93,.17)}
+.brand small{display:block;font-size:10px;letter-spacing:.1px;color:#718096;font-weight:700;margin-top:1px}
+.navLinks{display:flex;align-items:center;gap:30px;font-size:13px;font-weight:750;color:#425268}
+.navLinks a{color:inherit;text-decoration:none}
+.navCta{border:0;background:#0a4f8a;color:white;border-radius:12px;padding:11px 16px;font-weight:850}
+.page{max-width:1200px;margin:0 auto;padding:0 24px 70px}
+.heroNew{display:grid;grid-template-columns:1.02fr .98fr;gap:50px;align-items:center;padding:55px 0 28px}
+.eyebrow{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#0b9b8a;font-weight:900;margin-bottom:14px}
+.heroNew h1{font-size:58px;line-height:1.02;letter-spacing:-2.7px;margin:0;color:#092644;max-width:650px}
+.heroNew h1 span{color:#0fa993}
+.heroNew .lead{font-size:18px;line-height:1.55;color:#536579;max-width:650px;margin:20px 0 22px}
+.trustRow{display:flex;gap:18px;flex-wrap:wrap;color:#465a70;font-size:13px;font-weight:700}
+.trustItem{display:flex;gap:8px;align-items:center}.trustDot{width:20px;height:20px;border-radius:50%;background:#13ae93;color:#fff;display:grid;place-items:center;font-size:11px;font-weight:900}
+.heroVisual{position:relative;border-radius:28px;overflow:hidden;min-height:355px;background:#dfeff2;box-shadow:0 28px 70px rgba(31,63,87,.17)}
+.heroVisual img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover}
+.heroOverlay{position:absolute;left:36px;bottom:34px;background:rgba(255,255,255,.88);border:1px solid rgba(255,255,255,.8);backdrop-filter:blur(12px);padding:20px 22px;border-radius:18px;max-width:330px;box-shadow:0 16px 40px rgba(12,41,57,.16)}
+.heroOverlay strong{font-size:22px;display:block;line-height:1.15;color:#0a2f50}.heroOverlay span{font-size:13px;color:#5f7183;line-height:1.45;display:block;margin-top:7px}
+.searchCard{margin-top:-2px;background:#fff;border:1px solid #e1e8ef;border-radius:20px;box-shadow:0 18px 50px rgba(45,73,102,.09);padding:18px}
+.searchGrid{display:grid;grid-template-columns:1fr 2fr 1fr auto;gap:12px;align-items:end}
+.field label,.fieldTitle{font-size:11px;text-transform:none;font-weight:850;color:#4d5f72;display:block}
+.field input,.field select{width:100%;margin-top:7px;border:1px solid #dbe4ec;background:#fbfdff;border-radius:12px;padding:13px 13px;color:#15324e;outline:none}
+.field input:focus,.field select:focus{border-color:#78aee4;box-shadow:0 0 0 3px rgba(52,122,207,.11);background:#fff}
+.analyseBtn{border:0;background:linear-gradient(135deg,#0a4c84,#0d68b7);color:#fff;border-radius:12px;padding:14px 20px;font-weight:900;white-space:nowrap;box-shadow:0 9px 20px rgba(12,84,145,.2)}
+.advanced{margin-top:13px;border-top:1px solid #edf1f5;padding-top:12px}
+.advanced summary{cursor:pointer;list-style:none;color:#53677a;font-size:12px;font-weight:850;display:flex;align-items:center;gap:7px}
+.advanced summary::-webkit-details-marker{display:none}
+.advanced summary:before{content:"+";width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#eef4f8;color:#476176}
+.advanced[open] summary:before{content:"−"}
+.advancedGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.topicWrap{grid-column:1/-1}.topics{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.topic{position:relative}.topic input{position:absolute;opacity:0;pointer-events:none}
+.topic span{display:block;border:1px solid #dce5ed;background:#fff;border-radius:999px;padding:8px 11px;font-size:12px;font-weight:760;color:#57697b;cursor:pointer}
+.topic input:checked+span{background:#0a3356;border-color:#0a3356;color:#fff}
+.context-note{grid-column:1/-1;font-size:11px;color:#738194;padding:10px 11px;background:#f6f9fb;border-radius:10px}
+.conditional-hidden{display:none!important}
+.actionsRow{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;flex-wrap:wrap}
+.resetBtn{border:0;background:transparent;color:#52708b;padding:6px;font-size:12px;font-weight:800}.saveHint{font-size:11px;color:#8793a1}
+.info{margin-top:14px;padding:11px 13px;border-radius:11px;background:#f2f7fb;color:#617286;font-size:12px;line-height:1.45}
+.summary{display:none;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}.stat{background:#fff;border:1px solid var(--line);border-radius:13px;padding:13px}.stat .n{font-size:21px;font-weight:950;color:#102f4d}.stat .l{font-size:11px;color:#788596;margin-top:2px}
+#status{margin:16px 0 8px;color:#6b7d8e;font-size:12px}.warnings{display:grid;gap:8px;margin:10px 0}.warn{background:var(--warningbg);border:1px solid #f5dc9e;color:#7b5b09;padding:10px 12px;border-radius:10px;font-size:12px}
+.resultsSection{margin-top:34px}
+.resultsToolbar{display:none;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}.resultsToolbar.show{display:flex}.resultsToolbar .left{font-size:24px;font-weight:950;color:#0b2945}.resultsToolbar .right{display:flex;align-items:center;gap:8px}.resultsToolbar label{font-size:11px;color:#66798c;font-weight:800;display:flex;align-items:center;gap:8px}.resultsToolbar select{border:1px solid #dce5ed;background:white;border-radius:10px;padding:9px 11px;color:#344b62}
+.results{display:grid;gap:13px}
+.card{background:#fff;border:1px solid #e1e8ef;border-radius:18px;padding:20px 20px 18px;box-shadow:0 7px 24px rgba(27,59,85,.045);transition:.18s ease}
+.card:hover{transform:translateY(-1px);box-shadow:0 12px 30px rgba(27,59,85,.075)}
+.row{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.title{font-size:20px;font-weight:950;line-height:1.25;color:#0c2946}
+.fit{white-space:nowrap;font-size:12px;font-weight:900;padding:7px 10px;border-radius:999px;background:#e8f8ef;color:#16845b}.fit.medium{background:#eef5ff;color:#2d67a8}.fit.low{background:#fff6df;color:#936900}
+.levelBadges{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.levelBadge{font-size:11px;font-weight:850;padding:5px 8px;border-radius:999px;background:#eff4f8;color:#607387;border:1px solid #e2e8ee}.levelBadge.federal{background:#eef5ff;color:#245f9d}.levelBadge.state{background:#eaf8f1;color:#1b7654}.levelBadge.eu,.levelBadge.eu_state{background:#f2efff;color:#6941c6}.levelBadge.municipal{background:#fff6e8;color:#8a5c00}
+.meta{margin-top:12px;display:grid;gap:6px;color:#5e7082;font-size:13px;line-height:1.4}.meta strong{color:#253d54}.reasons{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}.reason{font-size:11px;border-radius:999px;background:#f4f7fa;color:#617286;padding:5px 8px}
+.estimateBox,.estimateUnavailable,.estimatePending{margin-top:13px;border-radius:12px;padding:12px 13px}.estimateBox{background:#eef9f4;border:1px solid #cfebdd}.estimateUnavailable{background:#fff8e8;border:1px solid #f6dfac;color:#765a16}.estimatePending{background:#f5f8fa;border:1px solid #e4eaf0;color:#6f7f8f;font-size:12px}.estimateLabel{font-size:11px;color:#567261;font-weight:850}.estimateAmount{font-size:23px;font-weight:950;color:#116c4a;margin-top:2px}.estimateCalc{font-size:11px;color:#697970;margin-top:4px}
+.links{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.links a.btn,.inspect{border-radius:10px;padding:10px 12px;font-size:12px;font-weight:900;text-decoration:none}.links a.btn{background:#fff;color:#164e7d;border:1px solid #a9bfd2}.inspect{border:0;background:#0b3457;color:#fff}
+.applicationHelp{display:none;margin-top:15px;padding:15px;border:1px solid #dfe7ef;border-radius:14px;background:#f8fafc}.applicationHelp.open{display:block}
+.assistResult{display:grid;gap:11px}.assistSection{background:white;border:1px solid #e2e8ef;border-radius:11px;padding:12px}.assistSection h4{margin:0 0 7px;font-size:13px}.assistSection p{margin:0;color:#596b7d;font-size:12px;line-height:1.5}.assistLinks{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.assistLinks a{background:#0b3457;color:#fff;padding:9px 10px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:850}
+.verifyBadge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#e8f7ef;color:#187453;font-size:11px;font-weight:900}.verifyBadge.fdbOnly{background:#fff4dc;color:#856000}
+.criteriaList{display:grid;gap:6px}.criteriaRow{display:grid;grid-template-columns:16px 125px 1fr;gap:6px;font-size:11px;color:#617286}.criteriaDot.pass{color:#16875d}.criteriaDot.open{color:#b57a00}.riskBox{padding:8px 9px;border-radius:8px;background:#fff8e6;border:1px solid #f4dc9e;color:#765a16;font-size:11px;margin-top:6px}.riskBox.critical{background:#fff0f0;border-color:#f5c5c5;color:#8c2525}.docList{font-size:12px;color:#5f7080;line-height:1.6}.draftBox{white-space:pre-wrap;background:#f6f8fa;border:1px solid #e2e8ed;border-radius:8px;padding:9px;font-size:11px;color:#526477;line-height:1.5}.sourceList{display:grid;gap:5px;margin-top:7px}.sourceList a{font-size:11px;color:#2670bd;text-decoration:none}.premiumIntro{font-size:12px;color:#607184;margin:5px 0 10px}
+.paywallOverlay{display:none;position:fixed;inset:0;background:rgba(8,29,47,.62);z-index:100;align-items:center;justify-content:center;padding:18px}.paywallOverlay.open{display:flex}.paywallModal{width:min(560px,100%);max-height:92vh;overflow:auto;background:white;border-radius:22px;padding:24px;box-shadow:0 28px 90px rgba(0,0,0,.28);position:relative}.paywallClose{position:absolute;right:14px;top:13px;border:0;background:#eef3f7;color:#40556a;border-radius:999px;padding:7px 9px}.paywallEyebrow{font-size:11px;color:#167f70;font-weight:900;text-transform:uppercase;letter-spacing:1.5px}.paywallTitle{font-size:27px;font-weight:950;margin-top:5px}.paywallSub{font-size:13px;color:#627386;line-height:1.5;margin-top:7px}.paywallScope{margin-top:13px;background:#eef6ff;color:#265c93;padding:10px 11px;border-radius:9px;font-size:12px;font-weight:850}.paywallPrice{display:flex;align-items:end;gap:8px;margin-top:14px}.paywallPrice .now{font-size:31px;font-weight:950}.paywallPrice .old{text-decoration:line-through;color:#98a3af;font-size:13px}.paywallFeatures{display:grid;gap:7px;margin:15px 0;font-size:12px;color:#526579}.paywallFeatures div:before{content:"✓";color:#14966e;font-weight:950;margin-right:8px}.couponRow{display:grid;grid-template-columns:1fr auto;gap:8px}.couponRow input{margin:0;border:1px solid #dce5ed;border-radius:10px;padding:11px}.couponRow button{border:0;border-radius:10px;padding:10px 12px;background:#edf3f7;color:#38536c;font-weight:850}.couponStatus{font-size:11px;color:#6b7e90;margin-top:7px}.couponStatus.ok{color:#16875d}.couponStatus.bad{color:#b42318}.paywallActions button{width:100%;margin-top:12px;border:0;border-radius:11px;padding:13px;background:#0a3458;color:#fff;font-weight:900}.paywallHint{font-size:10px;color:#8c98a5;margin-top:9px;line-height:1.4}
+.footer{margin-top:34px;border-top:1px solid #e5ebf0;padding-top:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;color:#647487}.footerItem{display:flex;gap:10px}.footerIcon{width:32px;height:32px;border-radius:50%;background:#e9f8f4;color:#109983;display:grid;place-items:center;font-weight:900}.footerItem strong{display:block;color:#173550;font-size:12px}.footerItem span{font-size:11px;line-height:1.4;display:block;margin-top:2px}
+footer{margin-top:24px;text-align:center;font-size:10px;color:#8b97a4}
+@media(max-width:900px){
+  .navLinks{display:none}.heroNew{grid-template-columns:1fr;gap:24px;padding-top:34px}.heroNew h1{font-size:46px}.heroVisual{min-height:290px}.searchGrid{grid-template-columns:1fr 1fr}.analyseBtn{width:100%}.advancedGrid{grid-template-columns:1fr 1fr}.footer{grid-template-columns:1fr 1fr}
+}
+@media(max-width:620px){
+  .page,.nav{padding-left:15px;padding-right:15px}.devCoupon{padding:7px 12px}.heroNew h1{font-size:39px}.heroVisual{min-height:240px;border-radius:20px}.heroOverlay{left:18px;bottom:18px;right:18px;max-width:none}.searchGrid,.advancedGrid{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}.resultsToolbar{align-items:flex-start}.row{flex-direction:column}.footer{grid-template-columns:1fr}.navCta{display:none}
+}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div id="devCouponBanner" class="devCoupon">
-      <div><strong>Entwicklungsphase</strong> · Persönliche Förderprüfung 9,90 € · <span id="devCouponCode" class="couponCode">wird geladen …</span> = 0 €</div>
-      <button id="rememberCouponBtn" type="button" onclick="useDevelopmentCoupon()">Gutschein merken</button>
-    </div>
-    <div class="top">
-      <div class="brand">FörderRadar Deutschland</div>
-      <div class="badge">MVP 0.2</div>
-    </div>
-
-    <section class="hero">
-      <h1>Aus deinem Vorhaben wird ein Förderprofil.</h1>
-      <p class="sub">Beschreibe dein Projekt einmal. FörderRadar durchsucht mehrere Themen parallel, priorisiert passende Programme und zeigt transparent, warum ein Treffer zu deinem Profil passen könnte.</p>
-
-      <div class="steps">
-        <div class="step active">1 · Profil</div>
-        <div class="step">2 · Matching</div>
-        <div class="step">3 · Prüfung</div>
-        <div class="step">4 · Antrag</div>
+<div id="devCouponBanner" class="devCoupon">
+  <strong>Entwicklungsphase</strong><span>Persönliche Förderprüfung 9,90 € · Code <span id="devCouponCode" class="couponCode">wird geladen …</span> = 0 €</span>
+  <button id="rememberCouponBtn" type="button" onclick="useDevelopmentCoupon()">Gutschein merken</button>
+</div>
+<div class="navWrap">
+  <nav class="nav">
+    <div class="brand"><span class="brandMark">↗</span><span>FörderRadar<small>Fördermöglichkeiten einfach finden</small></span></div>
+    <div class="navLinks"><a href="#search">Förderprogramme</a><a href="#results">So funktioniert's</a><a href="#footer">Wissen</a><a href="#footer">Über uns</a></div>
+    <button class="navCta" onclick="document.getElementById('search').scrollIntoView({behavior:'smooth'})">Förderprofil analysieren</button>
+  </nav>
+</div>
+<main class="page">
+  <section class="heroNew">
+    <div>
+      <div class="eyebrow">Fördermittel einfach finden</div>
+      <h1>Mehr Möglichkeiten für <span>Ihre Ideen.</span></h1>
+      <p class="lead">FörderRadar zeigt passende Förderprogramme von Bund, Ländern und EU – schnell, unabhängig und verständlich.</p>
+      <div class="trustRow">
+        <div class="trustItem"><span class="trustDot">✓</span>Aktuelle Programme</div>
+        <div class="trustItem"><span class="trustDot">✓</span>Verständlich erklärt</div>
+        <div class="trustItem"><span class="trustDot">✓</span>Direkt zur offiziellen Quelle</div>
       </div>
+    </div>
+    <div class="heroVisual">
+      <img src="/hero.svg" alt="Alpenlandschaft als Symbol für neue Möglichkeiten">
+      <div class="heroOverlay"><strong>Gute Ideen verdienen Unterstützung.</strong><span>Wir helfen Ihnen, die passenden Fördermöglichkeiten zu finden.</span></div>
+    </div>
+  </section>
 
-      <div class="section">
-        <h2 id="profileHeading">Unternehmens- und Projektprofil</h2>
-        <div class="form">
-          <div>
-            <label>Bundesland
-              <select id="state">
-                <option>Bayern</option><option>Baden-Württemberg</option><option>Berlin</option><option>Brandenburg</option>
-                <option>Bremen</option><option>Hamburg</option><option>Hessen</option><option>Mecklenburg-Vorpommern</option>
-                <option>Niedersachsen</option><option>Nordrhein-Westfalen</option><option>Rheinland-Pfalz</option><option>Saarland</option>
-                <option>Sachsen</option><option>Sachsen-Anhalt</option><option>Schleswig-Holstein</option><option>Thüringen</option>
-              </select>
-            </label>
-          </div>
-          <div>
-            <label>Zielgruppe
-              <select id="target">
-                <option>Unternehmen</option><option>Privatperson</option><option>Gründer</option><option>Kommune</option>
-                <option>Verein</option><option>Hochschule</option><option>Forschungseinrichtung</option><option>Öffentliche Einrichtung</option>
-              </select>
-            </label>
-          </div>
+  <section id="search" class="searchCard">
+    <div class="searchGrid">
+      <div class="field"><label>Zielgruppe<select id="target"><option>Unternehmen</option><option>Privatperson</option><option>Gründer</option><option>Kommune</option><option>Verein</option><option>Hochschule</option><option>Forschungseinrichtung</option><option>Öffentliche Einrichtung</option></select></label></div>
+      <div class="field"><label>Ihr Vorhaben<input id="q" placeholder="z. B. Digitalisierung, Neubau, Beratung …"></label></div>
+      <div class="field"><label>Bundesland<select id="state"><option>Bayern</option><option>Baden-Württemberg</option><option>Berlin</option><option>Brandenburg</option><option>Bremen</option><option>Hamburg</option><option>Hessen</option><option>Mecklenburg-Vorpommern</option><option>Niedersachsen</option><option>Nordrhein-Westfalen</option><option>Rheinland-Pfalz</option><option>Saarland</option><option>Sachsen</option><option>Sachsen-Anhalt</option><option>Schleswig-Holstein</option><option>Thüringen</option></select></label></div>
+      <button id="searchBtn" class="analyseBtn" onclick="searchFunding()">Förderprofil analysieren →</button>
+    </div>
 
-          <div class="thirds">
-            <div>
-              <label>Ort / Kommune <span class="small">(optional)</span>
-                <input id="locality" placeholder="z. B. München, Neu-Ulm, Augsburg">
-              </label>
-            </div>
-            <div>
-              <label>Förderart
-                <select id="fundingType">
-                  <option value="">Alle Förderarten</option>
-                  <option>Zuschuss</option>
-                  <option>Darlehen</option>
-                  <option>Bürgschaft</option>
-                  <option>Beteiligung</option>
-                  <option>Garantie</option>
-                  <option>Sonstige</option>
-                </select>
-              </label>
-            </div>
-            <div>
-              <label>Förder-Ebene
-                <select id="fundingLevel">
-                  <option value="">Alle Ebenen</option>
-                  <option>Bund</option>
-                  <option>Land</option>
-                  <option>EU</option>
-                  <option>Kommunal</option>
-                </select>
-              </label>
-            </div>
-          </div>
-
-          <div class="thirds">
-            <div id="sizeField">
-              <label>Unternehmensgröße
-                <select id="size">
-                  <option value="">Nicht angegeben</option>
-                  <option>1–9 Mitarbeitende</option><option>10–49 Mitarbeitende</option><option>50–249 Mitarbeitende</option><option>250+ Mitarbeitende</option>
-                </select>
-              </label>
-            </div>
-            <div>
-              <label><span id="investmentLabel">Investitionssumme (€)</span>
-                <input id="investment" inputmode="numeric" type="number" min="0" step="1000" placeholder="z. B. 100000">
-              </label>
-            </div>
-            <div>
-              <label>Geplanter Projektstart
-                <input id="start" type="month">
-              </label>
-            </div>
-          </div>
-
-          <div id="audienceHint" class="context-note">Unternehmensgröße hilft dabei, KMU-spezifische Programme später genauer zu bewerten.</div>
-
-          <div class="full">
-            <label>Themen auswählen</label>
-            <div class="topics" id="topics">
-              <label class="topic" data-audiences="Unternehmen,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Digitalisierung"><span>Digitalisierung</span></label>
-              <label class="topic" data-audiences="Unternehmen,Gründer,Kommune,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Künstliche Intelligenz"><span>KI</span></label>
-              <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Energieeffizienz"><span>Energieeffizienz</span></label>
-              <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Erneuerbare Energien"><span>Erneuerbare Energien</span></label>
-              <label class="topic" data-audiences="Unternehmen,Gründer"><input type="checkbox" value="Maschinen Investition"><span>Maschinen / Investition</span></label>
-              <label class="topic" data-audiences="Unternehmen,Gründer,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Forschung Innovation"><span>Forschung & Innovation</span></label>
-              <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Weiterbildung"><span>Weiterbildung</span></label>
-              <label class="topic" data-audiences="Gründer"><input type="checkbox" value="Gründung"><span>Gründung</span></label>
-            </div>
-          </div>
-
-          <div class="full">
-            <label>Vorhaben in eigenen Worten
-              <input id="q" placeholder="z. B. Neue CNC-Maschine, Energiemanagement und KI-gestützte Produktionsplanung">
-            </label>
+    <details class="advanced">
+      <summary>Weitere Angaben für eine genauere Suche</summary>
+      <div class="advancedGrid">
+        <div class="field"><label>Ort / Kommune <span style="font-weight:500">(optional)</span><input id="locality" placeholder="z. B. München, Neu-Ulm"></label></div>
+        <div class="field"><label>Förderart<select id="fundingType"><option value="">Alle Förderarten</option><option>Zuschuss</option><option>Darlehen</option><option>Bürgschaft</option><option>Beteiligung</option><option>Garantie</option><option>Sonstige</option></select></label></div>
+        <div class="field"><label>Förder-Ebene<select id="fundingLevel"><option value="">Alle Ebenen</option><option>Bund</option><option>Land</option><option>EU</option><option>Kommunal</option></select></label></div>
+        <div id="sizeField" class="field"><label>Unternehmensgröße<select id="size"><option value="">Nicht angegeben</option><option>1–9 Mitarbeitende</option><option>10–49 Mitarbeitende</option><option>50–249 Mitarbeitende</option><option>250+ Mitarbeitende</option></select></label></div>
+        <div class="field"><label><span id="investmentLabel">Investitionssumme (€)</span><input id="investment" inputmode="numeric" type="number" min="0" step="1000" placeholder="z. B. 50.000"></label></div>
+        <div class="field"><label>Geplanter Projektstart<input id="start" type="month"></label></div>
+        <div class="topicWrap">
+          <div class="fieldTitle">Themen auswählen</div>
+          <div class="topics" id="topics">
+            <label class="topic" data-audiences="Unternehmen,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Digitalisierung"><span>Digitalisierung</span></label>
+            <label class="topic" data-audiences="Unternehmen,Gründer,Kommune,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Künstliche Intelligenz"><span>KI</span></label>
+            <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Energieeffizienz"><span>Energieeffizienz</span></label>
+            <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Erneuerbare Energien"><span>Erneuerbare Energien</span></label>
+            <label class="topic" data-audiences="Unternehmen,Gründer"><input type="checkbox" value="Maschinen Investition"><span>Maschinen / Investition</span></label>
+            <label class="topic" data-audiences="Unternehmen,Gründer,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Forschung Innovation"><span>Forschung & Innovation</span></label>
+            <label class="topic" data-audiences="Unternehmen,Privatperson,Gründer,Kommune,Verein,Hochschule,Forschungseinrichtung,Öffentliche Einrichtung"><input type="checkbox" value="Weiterbildung"><span>Weiterbildung</span></label>
+            <label class="topic" data-audiences="Gründer"><input type="checkbox" value="Gründung"><span>Gründung</span></label>
           </div>
         </div>
-
-        <div class="actions">
-          <button id="searchBtn" onclick="searchFunding()">Förderprofil analysieren</button>
-          <button class="secondary" onclick="resetProfile()">Profil zurücksetzen</button>
-          <span class="small">Das Profil wird nur lokal in deinem Browser gespeichert.</span>
-        </div>
-
-        <div class="info"><strong>Kostenlose Suche:</strong> FörderRadar nutzt die Förderdatenbank des Bundes zur Programmsuche und zeigt eine technische <strong>Relevanz</strong> – keine Förderwahrscheinlichkeit. Förderbeträge aus dieser Stufe sind vorläufig und werden nur bei ausreichend eindeutigen Angaben angezeigt. Die <strong>Persönliche Förderprüfung</strong> wertet zusätzlich erreichbare Primärquellen des Fördergebers aus und prüft dein konkretes Vorhaben, offene Kriterien, Risiken und Antragsschritte.</div>
-
-        <div id="summary" class="summary">
-          <div class="stat"><div class="n" id="statPrograms">0</div><div class="l">Programme geladen</div></div>
-          <div class="stat"><div class="n" id="statStrong">0</div><div class="l">hohe Relevanz</div></div>
-          <div class="stat"><div class="n" id="statTerms">0</div><div class="l">Suchpfade</div></div>
-          <div class="stat"><div class="n" id="statActive">0</div><div class="l">aktuell gelistet</div></div>
-        </div>
+        <div id="audienceHint" class="context-note">Unternehmensgröße hilft dabei, KMU-spezifische Programme später genauer zu bewerten.</div>
+        <h2 id="profileHeading" style="display:none">Unternehmens- und Projektprofil</h2>
       </div>
-    </section>
+      <div class="actionsRow"><button class="resetBtn" onclick="resetProfile()">↻ Angaben zurücksetzen</button><span class="saveHint">Das Profil wird nur lokal in Ihrem Browser gespeichert.</span></div>
+    </details>
 
-    <div id="status"></div>
-    <div id="warnings" class="warnings"></div>
+    <div class="info"><strong>Kostenlose Suche:</strong> FörderRadar nutzt die Förderdatenbank des Bundes zur Programmsuche und zeigt eine technische <strong>Relevanz</strong> – keine Förderwahrscheinlichkeit. Die persönliche Förderprüfung wertet zusätzlich erreichbare Primärquellen des Fördergebers aus.</div>
+    <div id="summary" class="summary">
+      <div class="stat"><div class="n" id="statPrograms">0</div><div class="l">Programme geladen</div></div>
+      <div class="stat"><div class="n" id="statStrong">0</div><div class="l">hohe Relevanz</div></div>
+      <div class="stat"><div class="n" id="statTerms">0</div><div class="l">Suchpfade</div></div>
+      <div class="stat"><div class="n" id="statActive">0</div><div class="l">aktuell gelistet</div></div>
+    </div>
+  </section>
+
+  <div id="status"></div>
+  <div id="warnings" class="warnings"></div>
+
+  <section class="resultsSection">
     <div id="resultsToolbar" class="resultsToolbar">
       <div class="left" id="resultsToolbarLabel">Ergebnisse</div>
       <div class="right">
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#667085">Sortierung
-          <select id="resultSort" onchange="applyResultSort()">
-            <option value="match">Höchste Relevanz</option>
-            <option value="amount">Höchster möglicher Förderbetrag</option>
-            <option value="level">Förder-Ebene</option>
-          </select>
-        </label>
+        <label>Sortieren nach<select id="resultSort" onchange="applyResultSort()"><option value="match">Höchste Relevanz</option><option value="amount">Höchster möglicher Förderbetrag</option><option value="level">Förder-Ebene</option></select></label>
       </div>
     </div>
     <div id="results" class="results"></div>
+  </section>
 
-
-
-    <div id="paywallOverlay" class="paywallOverlay" onclick="if(event.target===this)closePaywall()">
-      <div class="paywallModal" role="dialog" aria-modal="true" aria-labelledby="paywallTitle">
-        <button type="button" class="paywallClose" onclick="closePaywall()">✕</button>
-        <div class="paywallEyebrow">Persönliche Förderprüfung</div>
-        <div id="paywallTitle" class="paywallTitle">Zielgruppe freischalten</div>
-        <div class="paywallSub">Einmal bezahlen und alle persönlichen Förderprüfungen dieser Zielgruppe freischalten – auch bei späteren Suchläufen.</div>
-        <div id="paywallScope" class="paywallScope"></div>
-        <div class="paywallPrice"><span id="paywallOldPrice" class="old"></span><span id="paywallPriceNow" class="now">9,90 €</span><span class="small">einmalig · kein Abo</span></div>
-        <div class="paywallFeatures">
-          <div>Primärquellen des Fördergebers zusätzlich prüfen</div>
-          <div>persönliche Kriterien, offene Punkte und Risiken bewerten</div>
-          <div>Förderbetrag mit Formel und Quelle nachvollziehbar machen</div>
-          <div>Unterlagen, Antragsschritte und Textentwürfe vorbereiten</div>
-          <div>alle Programme der gewählten Zielgruppe freischalten</div>
-        </div>
-        <div class="couponRow">
-          <input id="paywallCoupon" autocomplete="off" placeholder="Gutscheincode">
-          <button type="button" class="secondary" onclick="applyTargetCoupon()">Gutschein anwenden</button>
-        </div>
-        <div id="paywallCouponStatus" class="couponStatus">Regulärer Preis: 9,90 € einmalig.</div>
-        <div class="paywallActions"><button id="paywallBuyBtn" type="button" onclick="unlockTargetGroup()">Zielgruppe für 9,90 € freischalten</button></div>
-        <div class="paywallHint">Während der Entwicklung ist keine echte Zahlungsabwicklung aktiv. Der Entwicklungs-Gutschein setzt den Preis auf 0 €.</div>
-      </div>
+  <div id="paywallOverlay" class="paywallOverlay" onclick="if(event.target===this)closePaywall()">
+    <div class="paywallModal" role="dialog" aria-modal="true" aria-labelledby="paywallTitle">
+      <button type="button" class="paywallClose" onclick="closePaywall()">✕</button>
+      <div class="paywallEyebrow">Persönliche Förderprüfung</div>
+      <div id="paywallTitle" class="paywallTitle">Zielgruppe freischalten</div>
+      <div class="paywallSub">Einmal bezahlen und alle persönlichen Förderprüfungen dieser Zielgruppe freischalten – auch bei späteren Suchläufen.</div>
+      <div id="paywallScope" class="paywallScope"></div>
+      <div class="paywallPrice"><span id="paywallOldPrice" class="old"></span><span id="paywallPriceNow" class="now">9,90 €</span><span class="small">einmalig · kein Abo</span></div>
+      <div class="paywallFeatures"><div>Primärquellen des Fördergebers zusätzlich prüfen</div><div>Persönliche Kriterien, offene Punkte und Risiken bewerten</div><div>Förderbetrag mit Formel und Quelle nachvollziehbar machen</div><div>Unterlagen, Antragsschritte und Textentwürfe vorbereiten</div><div>Alle Programme der gewählten Zielgruppe freischalten</div></div>
+      <div class="couponRow"><input id="paywallCoupon" autocomplete="off" placeholder="Gutscheincode"><button type="button" onclick="applyTargetCoupon()">Gutschein anwenden</button></div>
+      <div id="paywallCouponStatus" class="couponStatus">Regulärer Preis: 9,90 € einmalig.</div>
+      <div class="paywallActions"><button id="paywallBuyBtn" type="button" onclick="unlockTargetGroup()">Zielgruppe für 9,90 € freischalten</button></div>
+      <div class="paywallHint">Während der Entwicklung ist keine echte Zahlungsabwicklung aktiv. Der Entwicklungs-Gutschein setzt den Preis auf 0 €.</div>
     </div>
-
-    <footer>FörderRadar Deutschland · Entwicklungsstand · keine Rechts-, Steuer- oder Förderberatung · maßgeblich sind ausschließlich die offiziellen Programmbedingungen.</footer>
   </div>
 
+  <div id="footer" class="footer">
+    <div class="footerItem"><div class="footerIcon">◒</div><div><strong>Unabhängig</strong><span>Neutral und objektiv vorsortiert.</span></div></div>
+    <div class="footerItem"><div class="footerIcon">✓</div><div><strong>Aktuell</strong><span>Offizielle Programmdaten als Basis.</span></div></div>
+    <div class="footerItem"><div class="footerIcon">◷</div><div><strong>Zeitsparend</strong><span>Wichtige Informationen auf einen Blick.</span></div></div>
+    <div class="footerItem"><div class="footerIcon">♡</div><div><strong>Für Ihr Vorhaben</strong><span>Von der Idee bis zur Antragshilfe.</span></div></div>
+  </div>
+  <footer>FörderRadar Deutschland · Entwicklungsstand · keine Rechts-, Steuer- oder Förderberatung · maßgeblich sind ausschließlich die offiziellen Programmbedingungen.</footer>
+</main>
 <script>
 const PROFILE_KEY='foerderradar-profile-v02';
 const TARGET_ACCESS_KEY='foerderradar-target-access-v01';
