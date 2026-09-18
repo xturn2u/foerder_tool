@@ -3,58 +3,109 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>FörderRadar Deutschland – Test</title>
+  <title>FörderRadar Deutschland</title>
   <style>
     :root{font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:#172033;background:#f5f7fb}
-    *{box-sizing:border-box} body{margin:0}
-    .wrap{max-width:980px;margin:0 auto;padding:40px 20px 70px}
-    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:34px}
-    .brand{font-weight:800;font-size:22px}.badge{font-size:12px;background:#fff3cd;color:#755a00;padding:7px 10px;border-radius:999px;border:1px solid #ffe69c}
-    .hero{background:white;border:1px solid #e5e9f2;border-radius:22px;padding:34px;box-shadow:0 12px 38px rgba(31,46,80,.08)}
-    h1{font-size:44px;line-height:1.06;margin:0 0 14px;letter-spacing:-1.5px}
-    .sub{font-size:18px;color:#5d6678;max-width:720px;line-height:1.55}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
-    .card{background:#f8fafc;border:1px solid #e8ecf4;border-radius:16px;padding:18px}
-    .card strong{display:block;margin-bottom:7px}.muted{color:#687386;font-size:14px;line-height:1.5}
-    .form{margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    label{font-size:13px;font-weight:700;color:#586174}
-    input,select{width:100%;margin-top:6px;padding:12px 13px;border:1px solid #dfe4ed;border-radius:11px;background:white;font:inherit}
-    .full{grid-column:1/-1}
-    button{border:0;background:#172033;color:white;padding:13px 18px;border-radius:11px;font-weight:800;cursor:pointer}
-    #result{display:none;margin-top:20px;padding:18px;border:1px solid #cfe7d8;background:#f0faf4;border-radius:14px}
-    .status{display:flex;gap:9px;align-items:center}.dot{width:10px;height:10px;border-radius:50%;background:#20a464}
-    footer{margin-top:24px;color:#7a8496;font-size:13px;text-align:center}
-    @media(max-width:700px){h1{font-size:34px}.grid,.form{grid-template-columns:1fr}.full{grid-column:auto}.hero{padding:24px}}
+    *{box-sizing:border-box}body{margin:0}.wrap{max-width:1040px;margin:0 auto;padding:34px 20px 70px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}.brand{font-weight:850;font-size:22px}
+    .badge{font-size:12px;background:#eaf7ef;color:#167245;padding:7px 10px;border-radius:999px;border:1px solid #c9ebd7}
+    .hero{background:white;border:1px solid #e5e9f2;border-radius:22px;padding:30px;box-shadow:0 12px 38px rgba(31,46,80,.08)}
+    h1{font-size:42px;line-height:1.05;margin:0 0 12px;letter-spacing:-1.3px}.sub{font-size:17px;color:#5d6678;max-width:790px;line-height:1.55}
+    .form{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    label{font-size:13px;font-weight:750;color:#586174}input,select{width:100%;margin-top:6px;padding:12px 13px;border:1px solid #dfe4ed;border-radius:11px;background:#fff;font:inherit}
+    .full{grid-column:1/-1}button{border:0;background:#172033;color:#fff;padding:13px 18px;border-radius:11px;font-weight:800;cursor:pointer}
+    button:disabled{opacity:.55;cursor:wait}.info{margin-top:18px;padding:13px 15px;background:#f8fafc;border:1px solid #e6eaf2;border-radius:12px;color:#677185;font-size:13px;line-height:1.45}
+    #status{margin:22px 0 10px;color:#687386}.results{display:grid;gap:14px}.card{background:#fff;border:1px solid #e3e8f0;border-radius:16px;padding:18px}
+    .row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.title{font-weight:800;font-size:18px;line-height:1.35}.fit{white-space:nowrap;font-weight:850;font-size:13px;background:#edf8f1;color:#147147;padding:7px 9px;border-radius:999px}
+    .meta{margin-top:10px;display:grid;gap:7px;font-size:14px;color:#5d6678}.meta strong{color:#273044}.links{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+    a.btn{display:inline-block;text-decoration:none;background:#eef2f7;color:#1f2a3d;padding:9px 11px;border-radius:9px;font-weight:750;font-size:13px}
+    .warning{background:#fff8e6;border-color:#ffe09a;color:#755a00}.error{background:#fff0f0;border-color:#ffc9c9;color:#8b1d1d}
+    footer{margin-top:24px;color:#7a8496;font-size:12px;text-align:center;line-height:1.5}
+    @media(max-width:700px){h1{font-size:34px}.form{grid-template-columns:1fr}.full{grid-column:auto}.hero{padding:22px}.row{flex-direction:column}.fit{align-self:flex-start}}
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
       <div class="brand">FörderRadar Deutschland</div>
-      <div class="badge">TEST-PREVIEW</div>
+      <div class="badge">LIVE-MVP</div>
     </div>
     <section class="hero">
-      <h1>Fördermittel finden, bevor du sie verpasst.</h1>
-      <p class="sub">Technischer Teststand. Die Grant-Finder-Engine ist importiert; die deutsche Datenanbindung an Förderdatenbank, KfW, BAFA und Länderprogramme ist der nächste Entwicklungsschritt.</p>
-      <div class="grid">
-        <div class="card"><strong>Engine</strong><div class="status"><span class="dot"></span><span>Open-Source Grant-Finder importiert</span></div></div>
-        <div class="card"><strong>Datenstand</strong><span class="muted">Aktuell noch US-orientierte Quellen. Deutsche Quellen sind noch nicht produktiv angebunden.</span></div>
-        <div class="card"><strong>Ziel</strong><span class="muted">Profil anlegen → passende Programme matchen → Fristen überwachen → Förderstrategie erzeugen.</span></div>
-        <div class="card"><strong>Deployment</strong><span class="muted">Diese Seite dient zunächst nur zum Testen des externen Zugriffs und der späteren Produktoberfläche.</span></div>
-      </div>
+      <h1>Finde Förderprogramme, die zu deinem Vorhaben passen.</h1>
+      <p class="sub">Erster funktionsfähiger MVP mit Live-Suche in der offiziellen Förderdatenbank des Bundes. Der Fit-Wert dient nur zur Sortierung und ist keine Förderzusage.</p>
       <div class="form">
-        <div><label>Bundesland<select><option>Bayern</option><option>Baden-Württemberg</option><option>Hessen</option><option>Nordrhein-Westfalen</option></select></label></div>
-        <div><label>Zielgruppe<select><option>KMU / Unternehmen</option><option>Privatperson</option><option>Gründer</option><option>Verein</option></select></label></div>
-        <div class="full"><label>Vorhaben<input value="Digitalisierung und Energieeffizienz im Unternehmen"></label></div>
-        <div class="full"><button onclick="runDemo()">Testlauf starten</button></div>
+        <div>
+          <label>Bundesland
+            <select id="state">
+              <option>Bayern</option><option>Baden-Württemberg</option><option>Berlin</option><option>Brandenburg</option>
+              <option>Bremen</option><option>Hamburg</option><option>Hessen</option><option>Mecklenburg-Vorpommern</option>
+              <option>Niedersachsen</option><option>Nordrhein-Westfalen</option><option>Rheinland-Pfalz</option><option>Saarland</option>
+              <option>Sachsen</option><option>Sachsen-Anhalt</option><option>Schleswig-Holstein</option><option>Thüringen</option>
+            </select>
+          </label>
+        </div>
+        <div>
+          <label>Zielgruppe
+            <select id="target">
+              <option>Unternehmen</option><option>Privatperson</option><option>Gründer</option><option>Kommune</option>
+              <option>Verein</option><option>Hochschule</option><option>Forschungseinrichtung</option><option>Öffentliche Einrichtung</option>
+            </select>
+          </label>
+        </div>
+        <div class="full">
+          <label>Was planst du?
+            <input id="q" value="Digitalisierung Energieeffizienz" placeholder="z. B. Wärmepumpe, Digitalisierung, KI, neue Maschine">
+          </label>
+        </div>
+        <div class="full"><button id="searchBtn" onclick="searchFunding()">Förderungen suchen</button></div>
       </div>
-      <div id="result">
-        <strong>Demo erfolgreich.</strong>
-        <div class="muted" style="margin-top:6px">Die Weboberfläche funktioniert. Das echte Fördermatching wird im nächsten Schritt mit deutschen Datenquellen verbunden.</div>
-      </div>
+      <div class="info">Datenquelle: Förderdatenbank des Bundes. Der aktuelle MVP liest Live-Suchergebnisse. Im nächsten Ausbauschritt importieren wir den vollständigen XML-Datenbestand und berechnen Eligibility/Fristen strukturierter.</div>
     </section>
-    <footer>FörderRadar Deutschland · Entwicklungsstand · keine Förderberatung</footer>
+
+    <div id="status"></div>
+    <div id="results" class="results"></div>
+    <footer>FörderRadar Deutschland · Entwicklungsstand · keine Rechts-, Steuer- oder Förderberatung · maßgeblich sind die offiziellen Programmbedingungen.</footer>
   </div>
-  <script>function runDemo(){document.getElementById('result').style.display='block'}</script>
+
+<script>
+function esc(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function searchFunding(){
+  const btn=document.getElementById('searchBtn');
+  const status=document.getElementById('status');
+  const results=document.getElementById('results');
+  const q=document.getElementById('q').value.trim();
+  const state=document.getElementById('state').value;
+  const target=document.getElementById('target').value;
+  btn.disabled=true; results.innerHTML=''; status.className=''; status.textContent='Suche in der Förderdatenbank …';
+  try{
+    const r=await fetch('/api/search?'+new URLSearchParams({q,state,target}));
+    const data=await r.json();
+    if(!r.ok || !data.ok) throw new Error(data.error||'Suche fehlgeschlagen');
+    const count=data.total_hint ? ' · '+data.total_hint+' Treffer in der Quelle' : '';
+    status.textContent=(data.programs.length ? data.programs.length+' Programme geladen' : 'Keine Programme erkannt')+count;
+    if(!data.programs.length){
+      results.innerHTML='<div class="card warning">Für diese Kombination wurden im MVP keine Treffer erkannt. Versuche einen allgemeineren Suchbegriff.</div>';
+      return;
+    }
+    results.innerHTML=data.programs.map(p=>`
+      <article class="card">
+        <div class="row">
+          <div class="title">${esc(p.title)}</div>
+          <div class="fit">${esc(p.fit)} % Fit</div>
+        </div>
+        <div class="meta">
+          ${p.who?'<div><strong>Förderberechtigt:</strong> '+esc(p.who)+'</div>':''}
+          ${p.what?'<div><strong>Förderbereich:</strong> '+esc(p.what)+'</div>':''}
+          <div><strong>Status:</strong> ${esc(p.status)}</div>
+        </div>
+        <div class="links"><a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">Offizielle Programmdetails ↗</a></div>
+      </article>
+    `).join('');
+  }catch(e){
+    status.textContent='';
+    results.innerHTML='<div class="card error"><strong>Live-Suche fehlgeschlagen.</strong><br>'+esc(e.message)+'<br><small>Der Prototyp zeigt bewusst keinen Fake-Datensatz an.</small></div>';
+  }finally{btn.disabled=false}
+}
+</script>
 </body>
 </html>
