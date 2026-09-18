@@ -62,6 +62,52 @@ function norm(s = "") {
   return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+
+const LAND_NAMES = [
+  "Baden-Württemberg","Bayern","Berlin","Brandenburg","Bremen","Hamburg","Hessen",
+  "Mecklenburg-Vorpommern","Niedersachsen","Nordrhein-Westfalen","Rheinland-Pfalz",
+  "Saarland","Sachsen","Sachsen-Anhalt","Schleswig-Holstein","Thüringen"
+];
+
+function classifyQuickLevel({title="", giver="", area="", plain=""}) {
+  const ng = norm(giver);
+  const na = norm(area);
+  const all = norm([title,giver,area,plain.slice(0,1800)].join(" "));
+  const findLand = source => LAND_NAMES.find(land => source.includes(norm(land))) || "";
+
+  const municipalSource = [giver,title].join(" ");
+  if (/(stadt|gemeinde|landkreis|landeshauptstadt|bezirksamt)/.test(ng)) {
+    const m = municipalSource.match(/(?:landeshauptstadt|stadt|gemeinde|landkreis|bezirksamt)\s+([a-zäöüß\- ]{2,40})/i);
+    const place = (m?.[1] || "").replace(/\s+(fördert|förderung|programm|referat).*$/i,"").trim();
+    return {type:"municipal",label:"Kommunale Förderung" + (place ? " · " + place : ""),confidence:"hoch"};
+  }
+
+  if (/bundesministerium|bundesamt|bundesanstalt|bundesrepublik deutschland|\bbafa\b|\bkfw\b/.test(ng)) {
+    return {type:"federal",label:"Bundesförderung",confidence:"hoch"};
+  }
+
+  const giverLand = findLand(ng);
+  const eu = /europaische union|europaische kommission|eu-kommission|\befre\b|\besf\+?\b|\binterreg\b|horizont europa|\beafrd\b/.test(all);
+  if (giverLand) return {type:eu?"eu_state":"state",label:(eu?"EU / Landesförderung · ":"Landesförderung · ")+giverLand,confidence:"hoch"};
+
+  if (/europaische union|europaische kommission|eu-kommission/.test(ng)) {
+    return {type:"eu",label:"EU-Förderung",confidence:"hoch"};
+  }
+
+  const titleLand = findLand(norm(title));
+  if (titleLand) return {type:eu?"eu_state":"state",label:(eu?"EU / Landesförderung · ":"Landesförderung · ")+titleLand,confidence:"mittel"};
+
+  if (/bundesweit|deutschlandweit/.test(na) || /bundesprogramm|bundesforderung|bundesförderung/.test(norm(title))) {
+    return {type:"federal",label:"Bundesförderung",confidence:"mittel"};
+  }
+
+  const areaLand = findLand(na);
+  if (areaLand) return {type:eu?"eu_state":"state",label:(eu?"EU / Landesförderung · ":"Landesförderung · ")+areaLand,confidence:"mittel"};
+
+  if (eu) return {type:"eu",label:"EU-Förderung",confidence:"mittel"};
+  return {type:"unknown",label:"Förder-Ebene prüfen",confidence:"niedrig"};
+}
+
 function tokens(q = "") {
   const stop = new Set(["und","oder","für","mit","der","die","das","ein","eine","von","im","in","zu","zur","zum","am","an"]);
   return norm(q).split(/[^a-z0-9äöüß]+/i).filter(x => x.length > 2 && !stop.has(x));
@@ -123,14 +169,22 @@ function parsePrograms(html, searchTerm) {
     const plain = clean(html.slice(start, end));
 
     const whoMatch = plain.match(/Wer wird gefördert\??:\s*(.*?)(?=Was wird gefördert\??:|Förderprogramm|$)/i);
-    const whatMatch = plain.match(/Was wird gefördert\??:\s*(.*?)(?=Förderprogramm|Suchergebnisse|Sortierung|$)/i);
+    const whatMatch = plain.match(/Was wird gefördert\??:\s*(.*?)(?=Fördergebiet:|Fördergeber:|Förderprogramm|Suchergebnisse|Sortierung|$)/i);
+    const areaMatch = plain.match(/Fördergebiet:\s*(.*?)(?=Förderberechtigte:|Fördergeber:|Förderprogramm|$)/i);
+    const giverMatch = plain.match(/Fördergeber:\s*(.*?)(?=Ansprechpunkt:|Förderprogramm|$)/i);
     const status = /Antragstellung nicht mehr möglich/i.test(plain) ? "Antragstellung derzeit nicht mehr möglich" : "Programm gelistet";
+    const giver = (giverMatch?.[1] || "").trim().slice(0, 260);
+    const area = (areaMatch?.[1] || "").trim().slice(0, 220);
+    const fundingLevel = classifyQuickLevel({title,giver,area,plain});
 
     rows.push({
       title,
       url: href,
       who: (whoMatch?.[1] || "").trim().slice(0, 360),
       what: (whatMatch?.[1] || "").trim().slice(0, 440),
+      giver,
+      area,
+      funding_level: fundingLevel,
       status,
       foundBy: searchTerm
     });
