@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   const response = {
     ok: true,
-    product: "Antragshilfe",
+    product: "Persönliche Förderprüfung",
     currency: "EUR",
     regular_price_cents: PRICE_CENTS,
     discount_cents: discount,
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       response.message = "Kein Förderprogramm ausgewählt.";
     } else if (validCoupon && total === 0) {
       response.status = "granted";
-      response.message = "Antragshilfe im Entwicklungsmodus kostenlos freigeschaltet.";
+      response.message = "Persönliche Förderprüfung im Entwicklungsmodus kostenlos freigeschaltet.";
     } else {
       response.status = "payment_required";
       response.message = "Für diesen Betrag ist später eine Zahlungsabwicklung erforderlich.";
